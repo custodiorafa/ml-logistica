@@ -327,7 +327,7 @@ table.t tr:last-child td { border-bottom:none; }
     <!-- Formas de Entrega -->
     <div class="card" style="margin-bottom:24px">
       <div class="card-head">
-        <span class="card-title">🚚 Formas de Entrega — Pedidos em Aberto</span>
+        <span class="card-title">🚚 Formas de Entrega — Pedidos de Hoje</span>
         <span class="badge b-blue" id="shipping-total-badge">0 pedidos</span>
       </div>
       <div class="card-body">
@@ -738,6 +738,28 @@ async function startApp(){
       return sh.status!=='delivered' && o.status!=='cancelled';
     });
 
+    // ── Verifica atraso REAL via /shipments/{id}/delays para cada pedido em handling/ready_to_ship ──
+    step('Verificando atrasos reais de envio...');
+    const candidatesForDelay = state.openOrders.filter(o=>{
+      const sh=o.shipping||{};
+      return sh.id && (sh.status==='handling' || sh.status==='ready_to_ship' || sh.status==='pending');
+    });
+    const delayFetches = candidatesForDelay.slice(0,300).map(o=>
+      mlGet(`/shipments/${o.shipping.id}/delays`).then(res=>({orderId:o.id, delays:res}))
+    );
+    for(let i=0;i<delayFetches.length;i+=10){
+      const group = await Promise.all(delayFetches.slice(i,i+10));
+      group.forEach(({orderId,delays})=>{
+        const target = state.openOrders.find(o=>o.id===orderId);
+        if(target){
+          // /delays retorna 404 (null aqui) quando NÃO está atrasado; retorna objeto com array "delays" quando está
+          target.delayed = !!(delays && delays.delays && delays.delays.length>0);
+        }
+      });
+    }
+    // Pedidos não verificados (fora do batch de 300) ficam sem delayed=true por padrão
+    state.openOrders.forEach(o=>{ if(o.delayed===undefined) o.delayed=false; });
+
     // state.orders agora representa o acumulado em aberto (usado nos status cards)
     state.orders = state.openOrders;
 
@@ -783,20 +805,20 @@ function getLogisticGroup(o){
 }
 
 function renderShippingMethods(){
-  const orders=state.orders||[]; // acumulado em aberto
+  const orders=state.ordersToday||[]; // pedidos de hoje
   const flex=orders.filter(o=>getLogisticGroup(o)==='flex');
   const agency=orders.filter(o=>getLogisticGroup(o)==='agency');
   const full=orders.filter(o=>getLogisticGroup(o)==='full');
 
-  document.getElementById('shipping-total-badge').textContent=`${orders.length} pedidos`;
+  document.getElementById('shipping-total-badge').textContent=`${orders.length} pedidos hoje`;
   document.getElementById('ship-flex-count').textContent=flex.length;
   document.getElementById('ship-agency-count').textContent=agency.length;
   document.getElementById('ship-full-count').textContent=full.length;
 
-  const delayedIn=(arr)=>arr.filter(o=>classifyOrder(o)==='delayed').length;
-  document.getElementById('ship-flex-detail').innerHTML = flex.length ? `<span style="color:${delayedIn(flex)>0?'var(--red)':'var(--text2)'}">${delayedIn(flex)} atrasados</span>` : 'sem pedidos';
-  document.getElementById('ship-agency-detail').innerHTML = agency.length ? `<span style="color:${delayedIn(agency)>0?'var(--red)':'var(--text2)'}">${delayedIn(agency)} atrasados</span>` : 'sem pedidos';
-  document.getElementById('ship-full-detail').innerHTML = full.length ? `<span style="color:var(--green)">gerenciado pelo ML</span>` : 'sem pedidos';
+  const revOf=(arr)=>arr.reduce((s,o)=>s+(o.total_amount||0),0);
+  document.getElementById('ship-flex-detail').innerHTML = flex.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(flex))} faturado hoje</span>` : 'sem pedidos hoje';
+  document.getElementById('ship-agency-detail').innerHTML = agency.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(agency))} faturado hoje</span>` : 'sem pedidos hoje';
+  document.getElementById('ship-full-detail').innerHTML = full.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(full))} faturado hoje</span>` : 'sem pedidos hoje';
 }
 
 function renderProductsToday(){
