@@ -468,26 +468,43 @@ const state = {
 };
 const LS_KEY='ml_logistics_creds_v1';
 const BASE='https://api.mercadolibre.com';
-const PROXIES=['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url='];
+const PROXIES=[
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?url=',
+  'https://thingproxy.freeboard.io/fetch/',
+];
 
 function isLocal(){ return location.protocol==='file:'||location.hostname==='localhost'; }
 
 async function fetchWithTimeout(url,opts={},ms=12000){
   const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),ms);
-  try{ const r=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(tid); return r; }
+  try{ const r=await fetch(url,{...opts,signal:ctrl.signal,mode:'cors'}); clearTimeout(tid); return r; }
   catch(e){ clearTimeout(tid); throw e; }
 }
 
 async function mlFetch(path,opts={}){
   const full=`${BASE}${path}`;
+  let lastError=null;
+
+  // GitHub Pages é servido via HTTPS, mas a API do ML ainda bloqueia CORS
+  // em browser puro (sem backend). Por isso SEMPRE tentamos os proxies em sequência,
+  // independente de ser local ou não — a tentativa direta serve só como atalho rápido.
   if(!isLocal()){
-    try{ const r=await fetchWithTimeout(full,opts); if(r.ok||r.status===401) return r; }catch(e){}
+    try{
+      const r=await fetchWithTimeout(full,opts,8000);
+      if(r.ok||r.status===401||r.status===404) return r;
+    }catch(e){ lastError=e; }
   }
+
   for(const proxy of PROXIES){
     const url=proxy.includes('?url=')?`${proxy}${encodeURIComponent(full)}`:`${proxy}${full}`;
-    try{ const r=await fetchWithTimeout(url,opts,14000); if(r.status<500) return r; }catch(e){}
+    try{
+      const r=await fetchWithTimeout(url,opts,15000);
+      if(r.status<500) return r;
+      lastError=new Error(`proxy ${proxy} retornou ${r.status}`);
+    }catch(e){ lastError=e; console.warn('[mlFetch] proxy falhou:',proxy,e.message); }
   }
-  throw new Error('proxies falharam');
+  throw lastError||new Error('Todos os proxies falharam');
 }
 
 async function mlGet(path,retried=false){
@@ -495,9 +512,10 @@ async function mlGet(path,retried=false){
   try{
     const r=await mlFetch(path,{headers:{'Authorization':`Bearer ${state.token}`}});
     if(r.status===401&&!retried&&state.refreshToken){ const ok=await doRefreshToken(); if(ok) return mlGet(path,true); return null; }
-    if(!r.ok) return null;
+    if(r.status===404) return null; // ex: /delays sem atraso
+    if(!r.ok){ console.warn('[mlGet] status não-ok:',r.status,path); return null; }
     return r.json();
-  }catch(e){ console.error('mlGet falhou',path,e.message); return null; }
+  }catch(e){ console.error('[mlGet] falhou:',path,e.message); return null; }
 }
 
 function doLogin(){
@@ -684,9 +702,9 @@ async function startApp(){
     const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
     if(firstPage){
       todayOrders=[...(firstPage.results||[])];
-      const total=firstPage.paging?.total||todayOrders.length;
+      const total=Math.min(firstPage.paging?.total||todayOrders.length, 500);
       const fetches=[];
-      for(let off=50; off<Math.min(total,500); off+=50){
+      for(let off=50; off<total; off+=50){
         fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`));
       }
       for(let i=0;i<fetches.length;i+=5){
@@ -694,6 +712,12 @@ async function startApp(){
         group.forEach(r=>{ if(r?.results) todayOrders.push(...r.results); });
       }
     }
+    // Deduplica por ID
+    const seenTodayIds=new Set();
+    todayOrders = todayOrders.filter(o=>{
+      if(seenTodayIds.has(o.id)) return false;
+      seenTodayIds.add(o.id); return true;
+    });
     state.ordersToday = todayOrders;
 
     // Garante order_items completos nos pedidos de hoje (necessário para produtos vendidos)
@@ -722,9 +746,10 @@ async function startApp(){
     const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=0`);
     if(firstOpenPage){
       allOpenOrders=[...(firstOpenPage.results||[])];
-      const total=firstOpenPage.paging?.total||allOpenOrders.length;
+      // ML limita paginação real a ~1000; usamos teto seguro de 1000 independente do que paging.total reportar
+      const total=Math.min(firstOpenPage.paging?.total||allOpenOrders.length, 1000);
       const fetches=[];
-      for(let off=50; off<Math.min(total,1500); off+=50){
+      for(let off=50; off<total; off+=50){
         fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=${off}`));
       }
       for(let i=0;i<fetches.length;i+=5){
@@ -732,8 +757,11 @@ async function startApp(){
         group.forEach(r=>{ if(r?.results) allOpenOrders.push(...r.results); });
       }
     }
-    // Mantém só os que ainda não foram entregues nem cancelados — "em aberto" de fato
+    // Deduplica por ID (proxies/retries podem repetir resultados) e filtra entregues/cancelados
+    const seenIds=new Set();
     state.openOrders = allOpenOrders.filter(o=>{
+      if(seenIds.has(o.id)) return false;
+      seenIds.add(o.id);
       const sh=o.shipping||{};
       return sh.status!=='delivered' && o.status!=='cancelled';
     });
