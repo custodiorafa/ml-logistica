@@ -324,6 +324,33 @@ table.t tr:last-child td { border-bottom:none; }
       </div>
     </div>
 
+    <!-- Formas de Entrega -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-head">
+        <span class="card-title">🚚 Formas de Entrega — Pedidos em Aberto</span>
+        <span class="badge b-blue" id="shipping-total-badge">0 pedidos</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">⚡ Envios Flex</div>
+            <div style="font-size:28px;font-weight:700" id="ship-flex-count">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-flex-detail">aguardando...</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">🏢 Agências ML</div>
+            <div style="font-size:28px;font-weight:700" id="ship-agency-count">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-agency-detail">aguardando...</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">📦 Mercado Envios Full</div>
+            <div style="font-size:28px;font-weight:700" id="ship-full-count">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-full-detail">aguardando...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="secondary-row">
       <div class="secondary-card danger">
         <div class="secondary-head">
@@ -346,7 +373,7 @@ table.t tr:last-child td { border-bottom:none; }
     <div class="panel-grid">
       <div class="card">
         <div class="card-head">
-          <span class="card-title" id="detail-panel-title">📋 Pedidos do Dia — Detalhado</span>
+          <span class="card-title" id="detail-panel-title">📋 Pedidos em Aberto — Acumulado</span>
           <span class="badge b-blue" id="detail-count-badge">0 pedidos</span>
         </div>
         <div class="card-body" style="padding:0">
@@ -400,6 +427,30 @@ table.t tr:last-child td { border-bottom:none; }
           <div class="scroll" id="claims-list">
             <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Carregando reclamações...</div>
           </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">📦 Produtos Vendidos Hoje</span>
+          <span class="badge b-green" id="products-today-badge">0 itens</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="scroll">
+            <table class="t">
+              <thead><tr><th>Produto</th><th>Qtd</th><th>Receita</th><th>Pedidos</th></tr></thead>
+              <tbody id="products-today-tbody">
+                <tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">🏆 Top 5 Mais Vendidos Hoje</span></div>
+        <div class="card-body" id="top-products-bars">
+          <div style="color:var(--muted);font-size:13px">Carregando...</div>
         </div>
       </div>
     </div>
@@ -536,19 +587,28 @@ function showToast(msg,type='ok'){
 function demoOrders(){
   const statuses=['handling','ready_to_ship','shipped','delivered','cancelled'];
   const subs={handling:['waiting_for_label_generation',null],ready_to_ship:['printed','ready_to_print'],shipped:[null],delivered:[null],cancelled:[null]};
+  const logisticTypes=['self_service','cross_docking','fulfillment']; // Flex, Agências(cross_docking=me2), Full
   const names=['Maria Silva','João Pereira','Ana Costa','Carlos Souza','Beatriz Lima','Pedro Alves','Juliana Rocha','Rafael Santos','Fernanda Dias','Lucas Martins'];
+  const products=['Fita Dupla Face 3M 12mm','Câmara de Ar Moto Aro 18','Pino Bico Graxeiro Lubrificação','Fita Isolante Anti Chama 19x10','Regulador Pressão Wabco','Lubrificante Pasta Mole 3kg'];
   const now=Date.now();
-  return Array.from({length:42},(_,i)=>{
-    const st=statuses[Math.floor(Math.random()*statuses.length)];
-    const hoursAgo=Math.random()*24;
+  // 15 atrasadas propositalmente, resto distribuído
+  return Array.from({length:68},(_,i)=>{
+    const isDelayed = i<15;
+    const st = isDelayed ? 'handling' : statuses[Math.floor(Math.random()*statuses.length)];
+    const daysAgo = isDelayed ? (1+Math.random()*4) : Math.random()*3; // atrasadas são mais antigas
     return {
       id:9000000000+i,
-      status: i<3?'paid':st==='cancelled'?'cancelled':'paid',
-      date_created: new Date(now-hoursAgo*3600000).toISOString(),
+      status: st==='cancelled'?'cancelled':'paid',
+      date_created: new Date(now-daysAgo*86400000).toISOString(),
       total_amount: 45+Math.random()*380,
       buyer:{nickname:names[i%names.length]},
-      shipping:{id:8000000000+i, status:st, substatus:subs[st]?subs[st][Math.floor(Math.random()*subs[st].length)]:null},
-      delayed: st==='ready_to_ship'&&Math.random()>0.7,
+      product_title: products[i%products.length],
+      shipping:{
+        id:8000000000+i, status:st,
+        substatus:subs[st]?subs[st][Math.floor(Math.random()*subs[st].length)]:null,
+        logistic_type: logisticTypes[i%logisticTypes.length],
+      },
+      delayed: isDelayed,
     };
   });
 }
@@ -589,7 +649,16 @@ async function startApp(){
   }
 
   if(state.isDemo){
-    state.orders=demoOrders();
+    const all = demoOrders();
+    state.orders = all; // acumulado em aberto (demo já simula isso)
+    state.ordersToday = all.filter(o=>{
+      const d=new Date(o.date_created); const today=new Date();
+      return d.toDateString()===today.toDateString();
+    });
+    if(state.ordersToday.length<5){
+      // garante pelo menos alguns pedidos "hoje" pro demo ficar realista
+      state.ordersToday = all.slice(0,12).map(o=>({...o, date_created:new Date().toISOString()}));
+    }
     state.returns=demoReturns();
     state.claims=demoClaims();
     document.getElementById('seller-name').textContent='LOJA DEMO · Seller 123456789';
@@ -611,21 +680,66 @@ async function startApp(){
     const dFrom=todayStart.toISOString().slice(0,19)+'.000-03:00';
     const dTo=todayEnd.toISOString().slice(0,19)+'.999-03:00';
 
-    let allOrders=[];
+    let todayOrders=[];
     const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
     if(firstPage){
-      allOrders=[...(firstPage.results||[])];
-      const total=firstPage.paging?.total||allOrders.length;
+      todayOrders=[...(firstPage.results||[])];
+      const total=firstPage.paging?.total||todayOrders.length;
       const fetches=[];
       for(let off=50; off<Math.min(total,500); off+=50){
         fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`));
       }
       for(let i=0;i<fetches.length;i+=5){
         const group=await Promise.all(fetches.slice(i,i+5));
-        group.forEach(r=>{ if(r?.results) allOrders.push(...r.results); });
+        group.forEach(r=>{ if(r?.results) todayOrders.push(...r.results); });
       }
     }
-    state.orders=allOrders;
+    state.ordersToday = todayOrders;
+
+    // Garante order_items completos nos pedidos de hoje (necessário para produtos vendidos)
+    if(todayOrders.length){
+      step('Carregando produtos vendidos hoje...');
+      const needsDetail = todayOrders.filter(o=>!o.order_items || !o.order_items.length);
+      const detailFetches = needsDetail.slice(0,80).map(o=>mlGet(`/orders/${o.id}`));
+      for(let i=0;i<detailFetches.length;i+=8){
+        const group = await Promise.all(detailFetches.slice(i,i+8));
+        group.forEach((full,idx)=>{
+          if(full){
+            const orig = needsDetail[i+idx];
+            const target = todayOrders.find(o=>o.id===orig.id);
+            if(target) target.order_items = full.order_items || [];
+          }
+        });
+      }
+    }
+
+    // ── Pedidos ABERTOS acumulados — últimos 60 dias, status paid (ainda não entregues/cancelados) ──
+    step('Buscando todos os pedidos abertos (acumulado)...');
+    const openFrom = new Date(Date.now()-60*864e5).toISOString().slice(0,19)+'.000-03:00';
+    const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
+
+    let allOpenOrders=[];
+    const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=0`);
+    if(firstOpenPage){
+      allOpenOrders=[...(firstOpenPage.results||[])];
+      const total=firstOpenPage.paging?.total||allOpenOrders.length;
+      const fetches=[];
+      for(let off=50; off<Math.min(total,1500); off+=50){
+        fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=${off}`));
+      }
+      for(let i=0;i<fetches.length;i+=5){
+        const group=await Promise.all(fetches.slice(i,i+5));
+        group.forEach(r=>{ if(r?.results) allOpenOrders.push(...r.results); });
+      }
+    }
+    // Mantém só os que ainda não foram entregues nem cancelados — "em aberto" de fato
+    state.openOrders = allOpenOrders.filter(o=>{
+      const sh=o.shipping||{};
+      return sh.status!=='delivered' && o.status!=='cancelled';
+    });
+
+    // state.orders agora representa o acumulado em aberto (usado nos status cards)
+    state.orders = state.openOrders;
 
     step('Buscando reclamações...');
     const claimsResp = await mlGet(`/marketplace/v2/claims/search?seller_id=${state.sellerId}&status=opened`);
@@ -650,12 +764,93 @@ function refreshAll(){ renderAll(); const b=document.querySelector('.btn-refresh
 function renderAll(){
   renderHero();
   renderStatusGrid();
+  renderShippingMethods();
   renderSecondary();
   renderOrdersTable();
   renderUrgentActions();
   renderDaySummary();
   renderReturnsClaims();
+  renderProductsToday();
   renderHourChart();
+}
+
+function getLogisticGroup(o){
+  const lt = o.shipping?.logistic_type;
+  if(lt==='self_service') return 'flex';
+  if(lt==='cross_docking'||lt==='xd_drop_off') return 'agency';
+  if(lt==='fulfillment') return 'full';
+  return 'other';
+}
+
+function renderShippingMethods(){
+  const orders=state.orders||[]; // acumulado em aberto
+  const flex=orders.filter(o=>getLogisticGroup(o)==='flex');
+  const agency=orders.filter(o=>getLogisticGroup(o)==='agency');
+  const full=orders.filter(o=>getLogisticGroup(o)==='full');
+
+  document.getElementById('shipping-total-badge').textContent=`${orders.length} pedidos`;
+  document.getElementById('ship-flex-count').textContent=flex.length;
+  document.getElementById('ship-agency-count').textContent=agency.length;
+  document.getElementById('ship-full-count').textContent=full.length;
+
+  const delayedIn=(arr)=>arr.filter(o=>classifyOrder(o)==='delayed').length;
+  document.getElementById('ship-flex-detail').innerHTML = flex.length ? `<span style="color:${delayedIn(flex)>0?'var(--red)':'var(--text2)'}">${delayedIn(flex)} atrasados</span>` : 'sem pedidos';
+  document.getElementById('ship-agency-detail').innerHTML = agency.length ? `<span style="color:${delayedIn(agency)>0?'var(--red)':'var(--text2)'}">${delayedIn(agency)} atrasados</span>` : 'sem pedidos';
+  document.getElementById('ship-full-detail').innerHTML = full.length ? `<span style="color:var(--green)">gerenciado pelo ML</span>` : 'sem pedidos';
+}
+
+function renderProductsToday(){
+  const orders=state.ordersToday||[];
+  const productMap={};
+
+  orders.forEach(o=>{
+    if(o.status==='cancelled') return;
+    if(o.order_items && o.order_items.length){
+      o.order_items.forEach(oi=>{
+        const title=oi.item?.title||'Produto sem nome';
+        if(!productMap[title]) productMap[title]={qty:0,revenue:0,orders:0};
+        productMap[title].qty+=oi.quantity||1;
+        productMap[title].revenue+=(oi.unit_price||0)*(oi.quantity||1);
+        productMap[title].orders++;
+      });
+    } else if(o.product_title){
+      // fallback demo
+      const title=o.product_title;
+      if(!productMap[title]) productMap[title]={qty:0,revenue:0,orders:0};
+      productMap[title].qty+=1;
+      productMap[title].revenue+=o.total_amount||0;
+      productMap[title].orders++;
+    }
+  });
+
+  const sorted=Object.entries(productMap).sort((a,b)=>b[1].revenue-a[1].revenue);
+  document.getElementById('products-today-badge').textContent=`${sorted.length} itens`;
+
+  document.getElementById('products-today-tbody').innerHTML = sorted.length
+    ? sorted.map(([title,d])=>`
+        <tr>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</td>
+          <td class="mono" style="color:var(--green);font-weight:600">${d.qty}</td>
+          <td class="mono">R$${fmtMoney(d.revenue)}</td>
+          <td class="mono" style="color:var(--text2)">${d.orders}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Nenhuma venda registrada hoje ainda</td></tr>';
+
+  const top5=sorted.slice(0,5);
+  const maxQty=top5[0]?.[1].qty||1;
+  const colors=['#00e5a0','#3483fa','#ff9f1c','#b18aff','#ff3b5c'];
+  document.getElementById('top-products-bars').innerHTML = top5.length
+    ? top5.map(([title,d],i)=>`
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</span>
+            <span class="mono" style="color:${colors[i]}">${d.qty} un</span>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${d.qty/maxQty*100}%;background:${colors[i]};border-radius:3px"></div>
+          </div>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px">Sem vendas hoje ainda</div>';
 }
 
 function fmtMoney(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -674,17 +869,17 @@ function classifyOrder(o){
 }
 
 function renderHero(){
-  const orders=state.orders||[];
-  const paid = orders.filter(o=>o.status==='paid');
+  const ordersToday=state.ordersToday||[];
+  const paid = ordersToday.filter(o=>o.status==='paid');
   const revenue = paid.reduce((s,o)=>s+(o.total_amount||0),0);
   const avgTicket = paid.length ? revenue/paid.length : 0;
 
   document.getElementById('hero-revenue').textContent='R$ '+fmtMoney(revenue);
   document.getElementById('hero-avg-ticket').textContent='R$ '+fmtMoney(avgTicket);
   document.getElementById('hero-paid-count').textContent=paid.length;
-  document.getElementById('hero-orders-today').textContent=orders.length;
+  document.getElementById('hero-orders-today').textContent=ordersToday.length;
 
-  const cancelledCount = orders.filter(o=>o.status==='cancelled').length;
+  const cancelledCount = ordersToday.filter(o=>o.status==='cancelled').length;
   document.getElementById('hero-orders-delta').innerHTML = `<span style="color:var(--text2)">${paid.length} pagos · <span style="color:var(--red)">${cancelledCount} cancelados</span></span>`;
   document.getElementById('hero-revenue-delta').innerHTML = `<span style="color:var(--green)">▲ ${paid.length} vendas confirmadas hoje</span>`;
 }
@@ -804,7 +999,7 @@ function renderReturnsClaims(){
 }
 
 function renderHourChart(){
-  const orders=state.orders||[];
+  const orders=state.ordersToday||[];
   const byHour=new Array(24).fill(0);
   orders.forEach(o=>{ const h=new Date(o.date_created).getHours(); byHour[h]++; });
   const max=Math.max(...byHour,1);
