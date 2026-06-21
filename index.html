@@ -403,6 +403,10 @@ table.t tr:last-child td { border-bottom:none; }
             <div style="color:var(--muted);font-size:13px">Carregando...</div>
           </div>
         </div>
+        <div class="card" style="margin-top:18px;border-color:rgba(255,159,28,0.3)">
+          <div class="card-head"><span class="card-title">🔍 Diagnóstico (temporário)</span></div>
+          <div class="card-body" id="debug-panel" style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap">Carregando...</div>
+        </div>
       </div>
     </div>
 
@@ -744,19 +748,30 @@ async function startApp(){
 
     let allOpenOrders=[];
     const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=0`);
+
+    // ── DEBUG temporário: mostra a resposta crua da API na tela ──
+    window.__debugFirstOpenPage = firstOpenPage;
+    console.log('[DEBUG] firstOpenPage completo:', JSON.stringify(firstOpenPage));
+    console.log('[DEBUG] paging:', firstOpenPage?.paging);
+    console.log('[DEBUG] results.length:', firstOpenPage?.results?.length);
+
     if(firstOpenPage){
       allOpenOrders=[...(firstOpenPage.results||[])];
       // ML limita paginação real a ~1000; usamos teto seguro de 1000 independente do que paging.total reportar
-      const total=Math.min(firstOpenPage.paging?.total||allOpenOrders.length, 1000);
+      const rawTotal = firstOpenPage.paging?.total;
+      const total=Math.min(rawTotal||allOpenOrders.length, 1000);
+      console.log('[DEBUG] rawTotal da API:', rawTotal, '→ total usado:', total);
       const fetches=[];
       for(let off=50; off<total; off+=50){
         fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=${off}`));
       }
+      console.log('[DEBUG] número de requisições de paginação extra:', fetches.length);
       for(let i=0;i<fetches.length;i+=5){
         const group=await Promise.all(fetches.slice(i,i+5));
         group.forEach(r=>{ if(r?.results) allOpenOrders.push(...r.results); });
       }
     }
+    console.log('[DEBUG] allOpenOrders.length ANTES dedupe:', allOpenOrders.length);
     // Deduplica por ID (proxies/retries podem repetir resultados) e filtra entregues/cancelados
     const seenIds=new Set();
     state.openOrders = allOpenOrders.filter(o=>{
@@ -765,6 +780,26 @@ async function startApp(){
       const sh=o.shipping||{};
       return sh.status!=='delivered' && o.status!=='cancelled';
     });
+    console.log('[DEBUG] state.openOrders.length DEPOIS dedupe+filtro:', state.openOrders.length);
+    console.log('[DEBUG] amostra de 3 pedidos abertos:', state.openOrders.slice(0,3));
+    const statusCounts={};
+    state.openOrders.forEach(o=>{ const s=o.shipping?.status||'sem_status'; statusCounts[s]=(statusCounts[s]||0)+1; });
+    console.log('[DEBUG] contagem por shipping.status:', statusCounts);
+
+    // Salva tudo para exibir no painel visível
+    state.debugInfo = {
+      firstOpenPageOk: !!firstOpenPage,
+      rawTotal: firstOpenPage?.paging?.total,
+      rawResultsLen: firstOpenPage?.results?.length,
+      allOpenBeforeDedup: allOpenOrders.length,
+      openAfterDedup: state.openOrders.length,
+      statusCounts,
+      sampleOrder: state.openOrders[0] ? {
+        id: state.openOrders[0].id,
+        status: state.openOrders[0].status,
+        shipping: state.openOrders[0].shipping,
+      } : null,
+    };
 
     // ── Verifica atraso REAL via /shipments/{id}/delays para cada pedido em handling/ready_to_ship ──
     step('Verificando atrasos reais de envio...');
@@ -822,6 +857,27 @@ function renderAll(){
   renderReturnsClaims();
   renderProductsToday();
   renderHourChart();
+  renderDebugPanel();
+}
+
+function renderDebugPanel(){
+  const el=document.getElementById('debug-panel');
+  if(!el) return;
+  if(state.isDemo){ el.textContent='Modo demo — sem chamadas reais à API.'; return; }
+  const d=state.debugInfo;
+  if(!d){ el.textContent='Sem dados de diagnóstico ainda.'; return; }
+  el.innerHTML = `
+firstOpenPage recebido: <span style="color:${d.firstOpenPageOk?'var(--green)':'var(--red)'}">${d.firstOpenPageOk}</span>
+paging.total (API):     <span style="color:var(--yellow)">${d.rawTotal}</span>
+results na 1ª página:   ${d.rawResultsLen}
+total antes dedupe:     ${d.allOpenBeforeDedup}
+total DEPOIS dedupe:    <span style="color:var(--accent)">${d.openAfterDedup}</span>
+
+Contagem por shipping.status:
+${Object.entries(d.statusCounts||{}).map(([k,v])=>`  ${k}: ${v}`).join('\n')||'  (vazio)'}
+
+Amostra pedido[0]:
+${d.sampleOrder ? JSON.stringify(d.sampleOrder,null,2) : '(nenhum pedido aberto encontrado)'}`;
 }
 
 function getLogisticGroup(o){
