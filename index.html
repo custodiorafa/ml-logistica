@@ -503,7 +503,7 @@ async function mlFetch(path,opts={}){
   for(const proxy of PROXIES){
     const url=proxy.includes('?url=')?`${proxy}${encodeURIComponent(full)}`:`${proxy}${full}`;
     try{
-      const r=await fetchWithTimeout(url,opts,15000);
+      const r=await fetchWithTimeout(url,opts,20000);
       if(r.status<500) return r;
       lastError=new Error(`proxy ${proxy} retornou ${r.status}`);
     }catch(e){ lastError=e; console.warn('[mlFetch] proxy falhou:',proxy,e.message); }
@@ -706,14 +706,23 @@ async function startApp(){
     const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
     if(firstPage){
       todayOrders=[...(firstPage.results||[])];
-      const total=Math.min(firstPage.paging?.total||todayOrders.length, 500);
-      const fetches=[];
-      for(let off=50; off<total; off+=50){
-        fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`));
-      }
-      for(let i=0;i<fetches.length;i+=5){
-        const group=await Promise.all(fetches.slice(i,i+5));
-        group.forEach(r=>{ if(r?.results) todayOrders.push(...r.results); });
+      const rawTotalToday = firstPage.paging?.total;
+      let offsetToday=50, failsToday=0;
+      while(offsetToday<500){
+        const page = await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${offsetToday}`);
+        if(!page || !page.results){
+          failsToday++;
+          if(failsToday>=3) break;
+          await new Promise(r=>setTimeout(r,800));
+          continue;
+        }
+        failsToday=0;
+        if(page.results.length===0) break;
+        todayOrders.push(...page.results);
+        if(rawTotalToday && offsetToday+50>=rawTotalToday) break;
+        if(page.results.length<50) break;
+        offsetToday+=50;
+        await new Promise(r=>setTimeout(r,150));
       }
     }
     // Deduplica por ID
@@ -757,18 +766,39 @@ async function startApp(){
 
     if(firstOpenPage){
       allOpenOrders=[...(firstOpenPage.results||[])];
-      // ML limita paginação real a ~1000; usamos teto seguro de 1000 independente do que paging.total reportar
       const rawTotal = firstOpenPage.paging?.total;
-      const total=Math.min(rawTotal||allOpenOrders.length, 1000);
-      console.log('[DEBUG] rawTotal da API:', rawTotal, '→ total usado:', total);
-      const fetches=[];
-      for(let off=50; off<total; off+=50){
-        fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=${off}`));
-      }
-      console.log('[DEBUG] número de requisições de paginação extra:', fetches.length);
-      for(let i=0;i<fetches.length;i+=5){
-        const group=await Promise.all(fetches.slice(i,i+5));
-        group.forEach(r=>{ if(r?.results) allOpenOrders.push(...r.results); });
+      console.log('[DEBUG] rawTotal da API:', rawTotal);
+
+      // Paginação SEQUENCIAL (não paralela) para não saturar o proxy CORS gratuito.
+      // Para quando: (a) bater no rawTotal real, (b) uma página vier vazia, ou (c) atingir teto de segurança.
+      const SAFETY_CAP = 1000;
+      let offset = 50;
+      let consecutiveFailures = 0;
+
+      while(offset < SAFETY_CAP){
+        step(`Buscando pedidos abertos... ${offset} já carregados`);
+        const page = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=${offset}`);
+
+        if(!page || !page.results){
+          consecutiveFailures++;
+          console.warn(`[DEBUG] página offset=${offset} falhou (tentativa ${consecutiveFailures})`);
+          if(consecutiveFailures>=3) { console.warn('[DEBUG] 3 falhas seguidas — parando paginação'); break; }
+          await new Promise(r=>setTimeout(r,800)); // pausa antes de tentar de novo
+          continue;
+        }
+        consecutiveFailures=0;
+
+        if(page.results.length===0) { console.log('[DEBUG] página vazia em offset',offset,'— fim real dos dados'); break; }
+
+        allOpenOrders.push(...page.results);
+
+        // Se já bateu no total reportado pela API, para
+        if(rawTotal && offset+50>=rawTotal) { console.log('[DEBUG] atingiu rawTotal, parando'); break; }
+        // Se a página voltou com menos que o limit, é a última página
+        if(page.results.length<50) { console.log('[DEBUG] última página parcial, parando'); break; }
+
+        offset+=50;
+        await new Promise(r=>setTimeout(r,150)); // pequeno respiro entre chamadas
       }
     }
     console.log('[DEBUG] allOpenOrders.length ANTES dedupe:', allOpenOrders.length);
@@ -807,11 +837,13 @@ async function startApp(){
       const sh=o.shipping||{};
       return sh.id && (sh.status==='handling' || sh.status==='ready_to_ship' || sh.status==='pending');
     });
-    const delayFetches = candidatesForDelay.slice(0,300).map(o=>
-      mlGet(`/shipments/${o.shipping.id}/delays`).then(res=>({orderId:o.id, delays:res}))
-    );
-    for(let i=0;i<delayFetches.length;i+=10){
-      const group = await Promise.all(delayFetches.slice(i,i+10));
+    const delayTargets = candidatesForDelay.slice(0,200); // reduzido para não saturar o proxy
+    for(let i=0;i<delayTargets.length;i+=4){
+      const batch = delayTargets.slice(i,i+4);
+      step(`Verificando atrasos... ${i+batch.length}/${delayTargets.length}`);
+      const group = await Promise.all(batch.map(o=>
+        mlGet(`/shipments/${o.shipping.id}/delays`).then(res=>({orderId:o.id, delays:res}))
+      ));
       group.forEach(({orderId,delays})=>{
         const target = state.openOrders.find(o=>o.id===orderId);
         if(target){
@@ -819,8 +851,9 @@ async function startApp(){
           target.delayed = !!(delays && delays.delays && delays.delays.length>0);
         }
       });
+      await new Promise(r=>setTimeout(r,200)); // respiro entre lotes
     }
-    // Pedidos não verificados (fora do batch de 300) ficam sem delayed=true por padrão
+    // Pedidos não verificados (fora do batch) ficam sem delayed=true por padrão
     state.openOrders.forEach(o=>{ if(o.delayed===undefined) o.delayed=false; });
 
     // state.orders agora representa o acumulado em aberto (usado nos status cards)
