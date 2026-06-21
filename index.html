@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torre de Controle — Operações Logísticas</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060a0f;
+  --surface: #0b1018;
+  --surface2: #0f1622;
+  --surface3: #141d2c;
+  --border: rgba(99,179,237,0.08);
+  --border2: rgba(99,179,237,0.16);
+  --accent: #3483fa;
+  --red: #ff3b5c;
+  --orange: #ff9f1c;
+  --yellow: #ffd23f;
+  --green: #00e5a0;
+  --purple: #b18aff;
+  --text: #eaf0f8;
+  --text2: #8b9bb0;
+  --muted: #4a5b70;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Space Grotesk', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; }
+
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(52,131,250,0.06) 0%, transparent 40%),
+    radial-gradient(circle at 85% 90%, rgba(255,59,92,0.04) 0%, transparent 40%);
+  pointer-events:none; z-index:0;
+}
+.wrap { position:relative; z-index:1; }
+
+/* ─── AUTH ─── */
+#auth-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
+.auth-box { width:100%; max-width:480px; background:var(--surface); border:1px solid var(--border2); border-radius:20px; padding:40px; text-align:center; }
+.auth-logo { display:inline-flex; align-items:center; gap:10px; margin-bottom:28px; }
+.auth-badge { background:var(--red); color:#fff; font-weight:800; font-size:12px; padding:6px 12px; border-radius:8px; letter-spacing:0.5px; }
+.auth-title { font-size:24px; font-weight:700; margin-bottom:8px; letter-spacing:-0.3px; }
+.auth-sub { color:var(--text2); font-size:13px; margin-bottom:28px; line-height:1.6; }
+.input-group { margin-bottom:14px; text-align:left; }
+.input-group label { display:block; font-size:10px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; font-family:var(--mono); }
+.input-group input, .input-group select { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:10px; padding:11px 14px; color:var(--text); font-family:var(--mono); font-size:13px; outline:none; transition:border-color 0.2s; }
+.input-group input:focus, .input-group select:focus { border-color:var(--accent); }
+.input-group input::placeholder { color:var(--muted); }
+.btn-auth { width:100%; padding:13px; background:var(--accent); color:#fff; font-weight:700; font-size:14px; border:none; border-radius:12px; cursor:pointer; font-family:var(--sans); margin-top:6px; transition:all 0.2s; }
+.btn-auth:hover { opacity:0.88; }
+.auth-divider { display:flex; align-items:center; gap:12px; margin:18px 0; color:var(--muted); font-size:12px; }
+.auth-divider::before, .auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+.btn-demo { width:100%; padding:11px; background:transparent; border:1px solid var(--border2); color:var(--text2); font-weight:600; font-size:13px; border-radius:12px; cursor:pointer; transition:all 0.2s; }
+.btn-demo:hover { border-color:var(--green); color:var(--green); }
+.auth-note { margin-top:18px; font-size:11px; color:var(--muted); line-height:1.6; font-family:var(--mono); text-align:left; }
+
+/* ─── LOADING ─── */
+#loading-screen { display:none; align-items:center; justify-content:center; min-height:100vh; flex-direction:column; gap:20px; }
+.loader { width:44px; height:44px; border:3px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.loading-text { font-family:var(--mono); font-size:13px; color:var(--text2); }
+.loading-step { font-size:12px; color:var(--muted); font-family:var(--mono); }
+
+/* ─── APP ─── */
+#app { display:none; }
+
+.topbar { display:flex; align-items:center; justify-content:space-between; padding:16px 28px; background:rgba(6,10,15,0.92); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+.topbar-left { display:flex; align-items:center; gap:14px; }
+.logo-mark { width:36px; height:36px; background:linear-gradient(135deg,var(--accent),var(--purple)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.topbar-title { font-size:16px; font-weight:700; letter-spacing:-0.3px; }
+.topbar-sub { font-size:11px; color:var(--muted); font-family:var(--mono); margin-top:1px; }
+.topbar-right { display:flex; align-items:center; gap:12px; }
+.live-pill { display:flex; align-items:center; gap:6px; background:rgba(0,229,160,0.08); border:1px solid rgba(0,229,160,0.25); padding:6px 13px; border-radius:99px; font-size:11px; font-family:var(--mono); color:var(--green); }
+.live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:blink 1.4s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+.clock-display { font-family:var(--mono); font-size:13px; color:var(--text2); }
+.btn-refresh { background:var(--accent); color:#fff; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:var(--sans); transition:all 0.15s; }
+.btn-refresh:hover { opacity:0.85; }
+.btn-logout { background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px 12px; border-radius:8px; font-size:12px; cursor:pointer; transition:all 0.15s; }
+.btn-logout:hover { border-color:var(--red); color:var(--red); }
+
+main { padding:28px; max-width:1500px; margin:0 auto; }
+
+/* ─── HERO STATS ─── */
+.hero-row { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:18px; margin-bottom:24px; }
+.hero-card { background:var(--surface); border:1px solid var(--border2); border-radius:18px; padding:26px; position:relative; overflow:hidden; }
+.hero-card.revenue { background:linear-gradient(135deg, rgba(0,229,160,0.08), rgba(11,16,24,1)); border-color:rgba(0,229,160,0.25); }
+.hero-label { font-size:11px; font-family:var(--mono); text-transform:uppercase; letter-spacing:1px; color:var(--text2); margin-bottom:10px; }
+.hero-value { font-size:42px; font-weight:700; letter-spacing:-1.5px; line-height:1; }
+.hero-value.money { color:var(--green); }
+.hero-delta { margin-top:10px; font-size:12px; font-family:var(--mono); display:flex; align-items:center; gap:6px; }
+.hero-sub-row { display:flex; gap:20px; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
+.hero-sub-item { flex:1; }
+.hero-sub-label { font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; }
+.hero-sub-val { font-size:20px; font-weight:700; margin-top:4px; }
+
+/* ─── STATUS GRID ─── */
+.status-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:24px; }
+.status-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; position:relative; cursor:pointer; transition:all 0.2s; overflow:hidden; }
+.status-card:hover { transform:translateY(-3px); border-color:var(--card-color); }
+.status-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--card-color); }
+.status-icon { font-size:22px; margin-bottom:10px; display:block; }
+.status-label { font-size:11px; font-family:var(--mono); color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; line-height:1.3; }
+.status-value { font-size:34px; font-weight:700; letter-spacing:-1px; }
+.status-flag { margin-top:8px; font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; display:inline-block; }
+
+/* ─── SECONDARY ─── */
+.secondary-row { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px; }
+.secondary-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; }
+.secondary-card.danger { border-color:rgba(255,59,92,0.25); background:linear-gradient(135deg, rgba(255,59,92,0.04), var(--surface)); }
+.secondary-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.secondary-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
+.secondary-count { font-size:36px; font-weight:700; }
+
+/* ─── PANELS ─── */
+.panel-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; margin-bottom:18px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+.card-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.card-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); display:flex; align-items:center; gap:8px; }
+.card-body { padding:18px 20px; }
+
+table.t { width:100%; border-collapse:collapse; }
+table.t th { padding:10px 14px; text-align:left; font-size:10px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.7px; color:var(--muted); border-bottom:1px solid var(--border); }
+table.t td { padding:12px 14px; font-size:13px; border-bottom:1px solid rgba(99,179,237,0.04); }
+table.t tr:hover td { background:rgba(52,131,250,0.04); }
+table.t tr:last-child td { border-bottom:none; }
+.mono { font-family:var(--mono); }
+
+.badge { padding:3px 10px; border-radius:99px; font-size:10px; font-family:var(--mono); font-weight:600; letter-spacing:0.3px; white-space:nowrap; }
+.b-red { background:rgba(255,59,92,0.14); color:var(--red); }
+.b-orange { background:rgba(255,159,28,0.14); color:var(--orange); }
+.b-yellow { background:rgba(255,210,63,0.14); color:var(--yellow); }
+.b-green { background:rgba(0,229,160,0.14); color:var(--green); }
+.b-blue { background:rgba(52,131,250,0.14); color:var(--accent); }
+.b-purple { background:rgba(177,138,255,0.14); color:var(--purple); }
+.b-gray { background:rgba(139,155,176,0.12); color:var(--text2); }
+
+.alert-row { display:flex; align-items:flex-start; gap:12px; padding:13px 16px; border-radius:12px; margin-bottom:9px; border:1px solid; transition:transform 0.15s; }
+.alert-row:hover { transform:translateX(3px); }
+.a-red { background:rgba(255,59,92,0.05); border-color:rgba(255,59,92,0.2); }
+.a-orange { background:rgba(255,159,28,0.05); border-color:rgba(255,159,28,0.2); }
+.a-purple { background:rgba(177,138,255,0.05); border-color:rgba(177,138,255,0.2); }
+.alert-icon { font-size:17px; flex-shrink:0; margin-top:1px; }
+.alert-body { flex:1; min-width:0; }
+.alert-title { font-size:13px; font-weight:700; margin-bottom:2px; }
+.alert-desc { font-size:12px; color:var(--text2); line-height:1.5; }
+
+.hour-bars { display:flex; align-items:flex-end; gap:3px; height:80px; margin-top:8px; }
+.hour-bar { flex:1; background:var(--accent); border-radius:3px 3px 0 0; min-height:3px; transition:height 1s ease; position:relative; }
+.hour-bar:hover::after { content:attr(data-val); position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:10px; font-family:var(--mono); color:var(--text); white-space:nowrap; }
+
+.scroll { max-height:420px; overflow-y:auto; }
+.scroll::-webkit-scrollbar { width:4px; }
+.scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+.btn-sm { padding:6px 14px; border-radius:8px; font-size:11px; font-weight:700; border:none; cursor:pointer; font-family:var(--sans); transition:all 0.15s; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { opacity:0.85; }
+
+.priority-ring { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; flex-shrink:0; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.hero-card,.status-card,.secondary-card,.card,.alert-row { animation:fadeUp 0.35s ease both; }
+
+@media(max-width:1200px){
+  .hero-row { grid-template-columns:1fr; }
+  .status-grid { grid-template-columns:repeat(3,1fr); }
+  .panel-grid { grid-template-columns:1fr; }
+}
+@media(max-width:720px){
+  main{padding:16px}
+  .topbar{padding:12px 16px}
+  .status-grid{grid-template-columns:repeat(2,1fr)}
+  .secondary-row{grid-template-columns:1fr}
+}
+
+#token-bar-wrap { position:fixed; bottom:0; left:0; right:0; z-index:200; background:var(--surface); border-top:1px solid var(--border); padding:7px 28px; display:none; align-items:center; gap:16px; }
+#token-bar-wrap.visible { display:flex; }
+#token-bar-track { flex:1; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; }
+#token-bar-fill { height:100%; border-radius:2px; transition:width 1s linear, background 1s; background:var(--green); }
+#token-bar-label { font-size:11px; font-family:var(--mono); color:var(--text2); white-space:nowrap; }
+
+.toast { position:fixed; bottom:50px; right:24px; z-index:300; padding:12px 18px; border-radius:12px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px; box-shadow:0 8px 32px rgba(0,0,0,0.4); animation:toastIn 0.3s ease both; max-width:340px; }
+.toast-ok { background:rgba(0,229,160,0.12); border:1px solid rgba(0,229,160,0.3); color:var(--green); }
+.toast-err { background:rgba(255,59,92,0.12); border:1px solid rgba(255,59,92,0.3); color:var(--red); }
+@keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="auth-badge">LOG</span>
+      <span style="font-size:18px;font-weight:700">Torre de Controle</span>
+    </div>
+    <div class="auth-title">Operações Logísticas</div>
+    <div class="auth-sub">Conecte sua conta do Mercado Livre para monitorar pedidos, envios, devoluções e reclamações em tempo real.</div>
+
+    <div class="input-group"><label>Access Token</label><input type="password" id="inp-token" placeholder="APP_USR-..."></div>
+    <div class="input-group"><label>Refresh Token</label><input type="password" id="inp-refresh" placeholder="TG-..."></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="input-group"><label>App ID</label><input type="text" id="inp-appid" placeholder="1234567890"></div>
+      <div class="input-group"><label>App Secret</label><input type="password" id="inp-secret" placeholder="xxxxxxxx..."></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="input-group"><label>Seller ID</label><input type="text" id="inp-seller" placeholder="123456789"></div>
+      <div class="input-group"><label>Site</label>
+        <select id="inp-site">
+          <option value="MLB">🇧🇷 Brasil</option>
+          <option value="MLA">🇦🇷 Argentina</option>
+          <option value="MLM">🇲🇽 México</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-auth" onclick="doLogin()">🔐 Conectar Conta</button>
+    <div class="auth-divider">ou</div>
+    <button class="btn-demo" onclick="loadDemo()">⚡ Dados Demo</button>
+
+    <div class="auth-note" id="auth-error-hint" style="display:none;color:var(--red);background:rgba(255,59,92,0.06);border:1px solid rgba(255,59,92,0.2);border-radius:10px;padding:12px 14px;margin-top:14px">
+      ⚠️ Não foi possível conectar. Verifique o token, o Seller ID, e se as permissões de Vendas/Envios/Reclamações estão ativadas no app.
+    </div>
+  </div>
+</div>
+
+<div id="loading-screen">
+  <div class="loader"></div>
+  <div class="loading-text">Sincronizando operações...</div>
+  <div class="loading-step" id="loading-step">Conectando à API...</div>
+</div>
+
+<div id="token-bar-wrap">
+  <div id="token-bar-label">Token expira em —</div>
+  <div id="token-bar-track"><div id="token-bar-fill" style="width:100%"></div></div>
+  <button class="btn-sm btn-primary" onclick="manualRefresh()">🔄 Renovar</button>
+</div>
+<div id="toast-container"></div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mark">📡</div>
+      <div>
+        <div class="topbar-title">Torre de Controle</div>
+        <div class="topbar-sub" id="seller-name">Carregando...</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-pill"><div class="live-dot"></div> LIVE</div>
+      <div class="clock-display" id="live-clock">--:--:--</div>
+      <button class="btn-refresh" onclick="refreshAll()">↻ Atualizar</button>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+  </div>
+
+  <main>
+    <div class="hero-row">
+      <div class="hero-card revenue">
+        <div class="hero-label">💰 Faturamento de Hoje</div>
+        <div class="hero-value money" id="hero-revenue">R$ —</div>
+        <div class="hero-delta" id="hero-revenue-delta"><span style="color:var(--muted)">calculando...</span></div>
+        <div class="hero-sub-row">
+          <div class="hero-sub-item">
+            <div class="hero-sub-label">Ticket Médio</div>
+            <div class="hero-sub-val" id="hero-avg-ticket">—</div>
+          </div>
+          <div class="hero-sub-item">
+            <div class="hero-sub-label">Pedidos Pagos</div>
+            <div class="hero-sub-val" id="hero-paid-count">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <div class="hero-label">📦 Pedidos de Hoje</div>
+        <div class="hero-value" id="hero-orders-today">—</div>
+        <div class="hero-delta" id="hero-orders-delta"><span style="color:var(--muted)">total do dia</span></div>
+      </div>
+
+      <div class="hero-card">
+        <div class="hero-label">⏱ Distribuição por Hora</div>
+        <div class="hour-bars" id="hour-chart"></div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:4px">
+          <span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-card" style="--card-color:#3483fa">
+        <span class="status-icon">🏷️</span>
+        <div class="status-label">Etiquetas p/ Imprimir</div>
+        <div class="status-value" id="st-labels">—</div>
+        <span class="status-flag b-blue" id="st-labels-flag">aguardando</span>
+      </div>
+      <div class="status-card" style="--card-color:#ff3b5c">
+        <span class="status-icon">⏰</span>
+        <div class="status-label">Atrasadas</div>
+        <div class="status-value" id="st-delayed">—</div>
+        <span class="status-flag b-red" id="st-delayed-flag">aguardando</span>
+      </div>
+      <div class="status-card" style="--card-color:#00e5a0">
+        <span class="status-icon">✅</span>
+        <div class="status-label">Prontas p/ Enviar</div>
+        <div class="status-value" id="st-ready">—</div>
+        <span class="status-flag b-green" id="st-ready-flag">aguardando</span>
+      </div>
+      <div class="status-card" style="--card-color:#ff9f1c">
+        <span class="status-icon">⚠️</span>
+        <div class="status-label">Não Concluídas</div>
+        <div class="status-value" id="st-incomplete">—</div>
+        <span class="status-flag b-orange" id="st-incomplete-flag">aguardando</span>
+      </div>
+      <div class="status-card" style="--card-color:#8b9bb0">
+        <span class="status-icon">🚫</span>
+        <div class="status-label">Canceladas</div>
+        <div class="status-value" id="st-cancelled">—</div>
+        <span class="status-flag b-gray" id="st-cancelled-flag">aguardando</span>
+      </div>
+    </div>
+
+    <div class="secondary-row">
+      <div class="secondary-card danger">
+        <div class="secondary-head">
+          <div class="secondary-title">↩️ Devoluções Abertas</div>
+          <span class="badge b-red" id="returns-badge">0 ativas</span>
+        </div>
+        <div class="secondary-count" style="color:var(--red)" id="returns-count">—</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px" id="returns-summary">Carregando...</div>
+      </div>
+      <div class="secondary-card danger">
+        <div class="secondary-head">
+          <div class="secondary-title">⚖️ Reclamações Mercado Livre</div>
+          <span class="badge b-orange" id="claims-badge">0 ativas</span>
+        </div>
+        <div class="secondary-count" style="color:var(--orange)" id="claims-count">—</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px" id="claims-summary">Carregando...</div>
+      </div>
+    </div>
+
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title" id="detail-panel-title">📋 Pedidos do Dia — Detalhado</span>
+          <span class="badge b-blue" id="detail-count-badge">0 pedidos</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="scroll">
+            <table class="t" id="orders-table">
+              <thead>
+                <tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Sub-status</th><th>Prioridade</th></tr>
+              </thead>
+              <tbody id="orders-tbody">
+                <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Carregando pedidos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-head"><span class="card-title">🚨 Ação Imediata</span></div>
+          <div class="card-body" id="urgent-actions" style="padding:14px 16px">
+            <div style="color:var(--muted);font-size:13px">Calculando prioridades...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">📊 Resumo do Dia</span></div>
+          <div class="card-body" id="day-summary">
+            <div style="color:var(--muted);font-size:13px">Carregando...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">↩️ Devoluções — Detalhado</span>
+          <span class="badge b-red" id="returns-detail-badge">0</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="scroll" id="returns-list">
+            <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Carregando devoluções...</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">⚖️ Reclamações — Detalhado</span>
+          <span class="badge b-orange" id="claims-detail-badge">0</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="scroll" id="claims-list">
+            <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Carregando reclamações...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</div>
+
+<script>
+const state = {
+  token:null, refreshToken:null, appId:null, appSecret:null,
+  sellerId:null, site:'MLB', isDemo:false,
+  orders:[], shipments:[], returns:[], claims:[],
+  tokenExpiresAt:null, refreshTimer:null, countdownTimer:null,
+};
+const LS_KEY='ml_logistics_creds_v1';
+const BASE='https://api.mercadolibre.com';
+const PROXIES=['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url='];
+
+function isLocal(){ return location.protocol==='file:'||location.hostname==='localhost'; }
+
+async function fetchWithTimeout(url,opts={},ms=12000){
+  const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),ms);
+  try{ const r=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(tid); return r; }
+  catch(e){ clearTimeout(tid); throw e; }
+}
+
+async function mlFetch(path,opts={}){
+  const full=`${BASE}${path}`;
+  if(!isLocal()){
+    try{ const r=await fetchWithTimeout(full,opts); if(r.ok||r.status===401) return r; }catch(e){}
+  }
+  for(const proxy of PROXIES){
+    const url=proxy.includes('?url=')?`${proxy}${encodeURIComponent(full)}`:`${proxy}${full}`;
+    try{ const r=await fetchWithTimeout(url,opts,14000); if(r.status<500) return r; }catch(e){}
+  }
+  throw new Error('proxies falharam');
+}
+
+async function mlGet(path,retried=false){
+  if(state.isDemo) return null;
+  try{
+    const r=await mlFetch(path,{headers:{'Authorization':`Bearer ${state.token}`}});
+    if(r.status===401&&!retried&&state.refreshToken){ const ok=await doRefreshToken(); if(ok) return mlGet(path,true); return null; }
+    if(!r.ok) return null;
+    return r.json();
+  }catch(e){ console.error('mlGet falhou',path,e.message); return null; }
+}
+
+function doLogin(){
+  const token=document.getElementById('inp-token').value.trim();
+  const refresh=document.getElementById('inp-refresh').value.trim();
+  const appId=document.getElementById('inp-appid').value.trim();
+  const secret=document.getElementById('inp-secret').value.trim();
+  const seller=document.getElementById('inp-seller').value.trim();
+  const site=document.getElementById('inp-site').value;
+  if(!token||!seller){ showToast('Preencha Token e Seller ID','err'); return; }
+  state.token=token; state.refreshToken=refresh||null; state.appId=appId||null;
+  state.appSecret=secret||null; state.sellerId=seller; state.site=site; state.isDemo=false;
+  state.tokenExpiresAt=Date.now()+21600*1000;
+  saveCreds(); startApp();
+}
+function loadDemo(){
+  state.isDemo=true; state.sellerId='123456789'; state.site='MLB';
+  state.tokenExpiresAt=Date.now()+21600*1000;
+  startApp();
+}
+function logout(){
+  clearCreds(); stopTimers();
+  Object.assign(state,{token:null,refreshToken:null,appId:null,appSecret:null,sellerId:null,isDemo:false,tokenExpiresAt:null});
+  document.getElementById('token-bar-wrap').classList.remove('visible');
+  document.getElementById('app').style.display='none';
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+}
+function saveCreds(){
+  if(state.isDemo) return;
+  try{ localStorage.setItem(LS_KEY,JSON.stringify({token:state.token,refreshToken:state.refreshToken,appId:state.appId,appSecret:state.appSecret,sellerId:state.sellerId,site:state.site,tokenExpiresAt:state.tokenExpiresAt})); }catch(e){}
+}
+function loadCreds(){
+  try{
+    const raw=localStorage.getItem(LS_KEY); if(!raw) return false;
+    const c=JSON.parse(raw); if(!c.token) return false;
+    if(c.tokenExpiresAt&&Date.now()>c.tokenExpiresAt&&!c.refreshToken) return false;
+    Object.assign(state,{token:c.token,refreshToken:c.refreshToken,appId:c.appId,appSecret:c.appSecret,sellerId:c.sellerId,site:c.site||'MLB',tokenExpiresAt:c.tokenExpiresAt,isDemo:false});
+    return true;
+  }catch(e){ return false; }
+}
+function clearCreds(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+
+async function doRefreshToken(){
+  if(state.isDemo||!state.refreshToken||!state.appId||!state.appSecret) return false;
+  try{
+    const body=new URLSearchParams({grant_type:'refresh_token',client_id:state.appId,client_secret:state.appSecret,refresh_token:state.refreshToken});
+    const r=await fetch('https://api.mercadolibre.com/oauth/token',{method:'POST',headers:{'accept':'application/json','content-type':'application/x-www-form-urlencoded'},body});
+    if(!r.ok) return false;
+    const data=await r.json();
+    state.token=data.access_token;
+    if(data.refresh_token) state.refreshToken=data.refresh_token;
+    state.tokenExpiresAt=Date.now()+(data.expires_in||21600)*1000;
+    saveCreds(); updateTokenUI(); scheduleAutoRefresh();
+    showToast('Token renovado automaticamente','ok');
+    return true;
+  }catch(e){ return false; }
+}
+function scheduleAutoRefresh(){
+  stopTimers(); if(state.isDemo||!state.tokenExpiresAt) return;
+  const msLeft=state.tokenExpiresAt-Date.now();
+  state.refreshTimer=setTimeout(()=>doRefreshToken(), Math.max(0,msLeft-5*60*1000));
+  state.countdownTimer=setInterval(updateTokenUI,1000);
+  document.getElementById('token-bar-wrap').classList.add('visible');
+  updateTokenUI();
+}
+function stopTimers(){ if(state.refreshTimer) clearTimeout(state.refreshTimer); if(state.countdownTimer) clearInterval(state.countdownTimer); }
+function updateTokenUI(){
+  if(state.isDemo||!state.tokenExpiresAt){ document.getElementById('token-bar-wrap').classList.remove('visible'); return; }
+  const msLeft=state.tokenExpiresAt-Date.now();
+  const pct=Math.max(0,Math.min(100,msLeft/(21600*1000)*100));
+  const h=Math.floor(msLeft/3600000), m=Math.floor((msLeft%3600000)/60000);
+  document.getElementById('token-bar-label').textContent=msLeft<=0?'⚠️ Token expirado':`Token expira em ${h}h${String(m).padStart(2,'0')}`;
+  document.getElementById('token-bar-fill').style.width=pct+'%';
+  document.getElementById('token-bar-fill').style.background=pct>30?'var(--green)':pct>10?'var(--orange)':'var(--red)';
+}
+function manualRefresh(){ doRefreshToken(); }
+
+let _toastTimer=null;
+function showToast(msg,type='ok'){
+  const c=document.getElementById('toast-container');
+  c.innerHTML=`<div class="toast ${type==='ok'?'toast-ok':'toast-err'}">${type==='ok'?'✅':'❌'} <span>${msg}</span></div>`;
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{c.innerHTML='';},4000);
+}
+
+function demoOrders(){
+  const statuses=['handling','ready_to_ship','shipped','delivered','cancelled'];
+  const subs={handling:['waiting_for_label_generation',null],ready_to_ship:['printed','ready_to_print'],shipped:[null],delivered:[null],cancelled:[null]};
+  const names=['Maria Silva','João Pereira','Ana Costa','Carlos Souza','Beatriz Lima','Pedro Alves','Juliana Rocha','Rafael Santos','Fernanda Dias','Lucas Martins'];
+  const now=Date.now();
+  return Array.from({length:42},(_,i)=>{
+    const st=statuses[Math.floor(Math.random()*statuses.length)];
+    const hoursAgo=Math.random()*24;
+    return {
+      id:9000000000+i,
+      status: i<3?'paid':st==='cancelled'?'cancelled':'paid',
+      date_created: new Date(now-hoursAgo*3600000).toISOString(),
+      total_amount: 45+Math.random()*380,
+      buyer:{nickname:names[i%names.length]},
+      shipping:{id:8000000000+i, status:st, substatus:subs[st]?subs[st][Math.floor(Math.random()*subs[st].length)]:null},
+      delayed: st==='ready_to_ship'&&Math.random()>0.7,
+    };
+  });
+}
+function demoReturns(){
+  return Array.from({length:7},(_,i)=>({
+    id:7000000+i,
+    order_id:9000000000+i,
+    reason:['Produto com defeito','Não gostou do produto','Produto diferente do anunciado','Arrependimento de compra','Produto incompleto'][i%5],
+    status:['pending','shipped','delivered'][i%3],
+    buyer:'Cliente '+(i+1),
+    amount: 60+Math.random()*200,
+  }));
+}
+function demoClaims(){
+  return Array.from({length:5},(_,i)=>({
+    id:5000000+i,
+    order_id:9000000010+i,
+    type:['mediations','cancel_sale','product_not_received'][i%3],
+    status:['opened','in_mediation','waiting_seller'][i%3],
+    stage:['claim','dispute'][i%2],
+    buyer:'Cliente '+(i+10),
+    date: new Date(Date.now()-Math.random()*5*86400000).toISOString(),
+  }));
+}
+
+async function startApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('loading-screen').style.display='flex';
+  const step=(t)=>document.getElementById('loading-step').textContent=t;
+
+  step('Conectando à API...');
+  await new Promise(r=>setTimeout(r,400));
+
+  if(!state.isDemo && state.tokenExpiresAt && Date.now()>state.tokenExpiresAt && state.refreshToken){
+    step('Renovando token...');
+    const ok=await doRefreshToken();
+    if(!ok){ logout(); return; }
+  }
+
+  if(state.isDemo){
+    state.orders=demoOrders();
+    state.returns=demoReturns();
+    state.claims=demoClaims();
+    document.getElementById('seller-name').textContent='LOJA DEMO · Seller 123456789';
+  } else {
+    step('Verificando conta...');
+    const user=await mlGet(`/users/${state.sellerId}`);
+    if(!user){
+      document.getElementById('loading-screen').style.display='none';
+      document.getElementById('auth-screen').style.display='flex';
+      document.getElementById('auth-error-hint').style.display='block';
+      showToast('Não foi possível conectar','err');
+      return;
+    }
+    document.getElementById('seller-name').textContent=`${user.nickname} · Seller ${state.sellerId}`;
+
+    step('Buscando pedidos de hoje...');
+    const todayStart=new Date(); todayStart.setHours(0,0,0,0);
+    const todayEnd=new Date(); todayEnd.setHours(23,59,59,999);
+    const dFrom=todayStart.toISOString().slice(0,19)+'.000-03:00';
+    const dTo=todayEnd.toISOString().slice(0,19)+'.999-03:00';
+
+    let allOrders=[];
+    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
+    if(firstPage){
+      allOrders=[...(firstPage.results||[])];
+      const total=firstPage.paging?.total||allOrders.length;
+      const fetches=[];
+      for(let off=50; off<Math.min(total,500); off+=50){
+        fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`));
+      }
+      for(let i=0;i<fetches.length;i+=5){
+        const group=await Promise.all(fetches.slice(i,i+5));
+        group.forEach(r=>{ if(r?.results) allOrders.push(...r.results); });
+      }
+    }
+    state.orders=allOrders;
+
+    step('Buscando reclamações...');
+    const claimsResp = await mlGet(`/marketplace/v2/claims/search?seller_id=${state.sellerId}&status=opened`);
+    state.claims = claimsResp?.data || claimsResp?.results || [];
+
+    step('Buscando devoluções...');
+    state.returns = state.claims.filter(c=>c.type==='return'||c.reason_id==='return');
+  }
+
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+
+  if(!state.isDemo) scheduleAutoRefresh();
+  renderAll();
+  setInterval(updateClock,1000); updateClock();
+}
+
+function updateClock(){ document.getElementById('live-clock').textContent=new Date().toLocaleTimeString('pt-BR'); }
+
+function refreshAll(){ renderAll(); const b=document.querySelector('.btn-refresh'); b.textContent='✓ Atualizado'; setTimeout(()=>b.textContent='↻ Atualizar',2000); }
+
+function renderAll(){
+  renderHero();
+  renderStatusGrid();
+  renderSecondary();
+  renderOrdersTable();
+  renderUrgentActions();
+  renderDaySummary();
+  renderReturnsClaims();
+  renderHourChart();
+}
+
+function fmtMoney(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function classifyOrder(o){
+  const sh = o.shipping||{};
+  const status = sh.status;
+  const substatus = sh.substatus;
+  if(o.status==='cancelled') return 'cancelled';
+  if(status==='ready_to_ship' && (substatus==='printed'||substatus==='ready_to_print')) return 'labels';
+  if(status==='handling' && o.delayed) return 'delayed';
+  if(status==='ready_to_ship' && !o.delayed) return 'ready';
+  if(status==='handling') return 'incomplete';
+  if(!status) return 'incomplete';
+  return 'other';
+}
+
+function renderHero(){
+  const orders=state.orders||[];
+  const paid = orders.filter(o=>o.status==='paid');
+  const revenue = paid.reduce((s,o)=>s+(o.total_amount||0),0);
+  const avgTicket = paid.length ? revenue/paid.length : 0;
+
+  document.getElementById('hero-revenue').textContent='R$ '+fmtMoney(revenue);
+  document.getElementById('hero-avg-ticket').textContent='R$ '+fmtMoney(avgTicket);
+  document.getElementById('hero-paid-count').textContent=paid.length;
+  document.getElementById('hero-orders-today').textContent=orders.length;
+
+  const cancelledCount = orders.filter(o=>o.status==='cancelled').length;
+  document.getElementById('hero-orders-delta').innerHTML = `<span style="color:var(--text2)">${paid.length} pagos · <span style="color:var(--red)">${cancelledCount} cancelados</span></span>`;
+  document.getElementById('hero-revenue-delta').innerHTML = `<span style="color:var(--green)">▲ ${paid.length} vendas confirmadas hoje</span>`;
+}
+
+function renderStatusGrid(){
+  const orders=state.orders||[];
+  const buckets={labels:0,delayed:0,ready:0,incomplete:0,cancelled:0};
+  orders.forEach(o=>{ const c=classifyOrder(o); if(buckets[c]!==undefined) buckets[c]++; });
+
+  document.getElementById('st-labels').textContent=buckets.labels;
+  document.getElementById('st-delayed').textContent=buckets.delayed;
+  document.getElementById('st-ready').textContent=buckets.ready;
+  document.getElementById('st-incomplete').textContent=buckets.incomplete;
+  document.getElementById('st-cancelled').textContent=buckets.cancelled;
+
+  document.getElementById('st-labels-flag').textContent = buckets.labels>0?`${buckets.labels} aguardando impressão`:'tudo impresso';
+  document.getElementById('st-delayed-flag').textContent = buckets.delayed>0?'🚨 ação urgente':'sem atrasos';
+  document.getElementById('st-delayed-flag').className = buckets.delayed>0?'status-flag b-red':'status-flag b-green';
+  document.getElementById('st-ready-flag').textContent = buckets.ready>0?'pronto p/ despachar':'nenhuma pronta';
+  document.getElementById('st-incomplete-flag').textContent = buckets.incomplete>0?'verificar pendências':'tudo ok';
+  document.getElementById('st-cancelled-flag').textContent = buckets.cancelled+' hoje';
+}
+
+function renderSecondary(){
+  const returns=state.returns||[];
+  const claims=state.claims||[];
+  document.getElementById('returns-count').textContent=returns.length;
+  document.getElementById('returns-badge').textContent=returns.length+' ativas';
+  document.getElementById('returns-summary').textContent = returns.length
+    ? `${returns.filter(r=>r.status==='pending').length} pendentes de envio · ${returns.filter(r=>r.status==='shipped').length} em trânsito`
+    : 'Nenhuma devolução em aberto';
+
+  document.getElementById('claims-count').textContent=claims.length;
+  document.getElementById('claims-badge').textContent=claims.length+' ativas';
+  document.getElementById('claims-summary').textContent = claims.length
+    ? `${claims.filter(c=>c.status==='opened'||c.status==='waiting_seller').length} aguardando sua resposta`
+    : 'Nenhuma reclamação aberta';
+}
+
+function renderOrdersTable(){
+  const orders=[...(state.orders||[])].sort((a,b)=>new Date(b.date_created)-new Date(a.date_created));
+  document.getElementById('detail-count-badge').textContent=`${orders.length} pedidos`;
+
+  const statusLabel={handling:'Em preparação',ready_to_ship:'Pronto p/ enviar',shipped:'Enviado',delivered:'Entregue',cancelled:'Cancelado'};
+  const statusBadge={handling:'b-orange',ready_to_ship:'b-green',shipped:'b-blue',delivered:'b-green',cancelled:'b-gray'};
+
+  document.getElementById('orders-tbody').innerHTML = orders.length ? orders.slice(0,60).map(o=>{
+    const sh=o.shipping||{};
+    const cls=classifyOrder(o);
+    const priorityColor = cls==='delayed'?'#ff3b5c':cls==='incomplete'?'#ff9f1c':cls==='labels'?'#3483fa':'#00e5a0';
+    const priorityLabel = cls==='delayed'?'Urgente':cls==='incomplete'?'Verificar':cls==='labels'?'Imprimir':cls==='cancelled'?'—':'OK';
+    return `<tr>
+      <td class="mono">#${String(o.id).slice(-8)}</td>
+      <td>${o.buyer?.nickname||'—'}</td>
+      <td class="mono" style="color:var(--green)">R$${fmtMoney(o.total_amount)}</td>
+      <td><span class="badge ${statusBadge[sh.status]||'b-gray'}">${statusLabel[sh.status]||o.status}</span></td>
+      <td style="font-size:11px;color:var(--text2)">${sh.substatus||'—'}</td>
+      <td><span class="priority-ring" style="background:${priorityColor}"></span>${priorityLabel}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Nenhum pedido hoje ainda</td></tr>';
+}
+
+function renderUrgentActions(){
+  const orders=state.orders||[];
+  const delayed=orders.filter(o=>classifyOrder(o)==='delayed');
+  const labels=orders.filter(o=>classifyOrder(o)==='labels');
+  const claims=(state.claims||[]).filter(c=>c.status==='opened'||c.status==='waiting_seller');
+
+  const actions=[];
+  if(delayed.length) actions.push({icon:'🚨',color:'a-red',title:`${delayed.length} envio${delayed.length>1?'s':''} atrasado${delayed.length>1?'s':''}`,desc:'Risco de penalização na reputação. Despache imediatamente.'});
+  if(labels.length) actions.push({icon:'🏷️',color:'a-orange',title:`${labels.length} etiqueta${labels.length>1?'s':''} para imprimir`,desc:'Pedidos prontos aguardando impressão e despacho.'});
+  if(claims.length) actions.push({icon:'⚖️',color:'a-purple',title:`${claims.length} reclamação${claims.length>1?'ões':''} aguardando resposta`,desc:'Responda em até 24h para evitar abertura automática de mediação.'});
+
+  document.getElementById('urgent-actions').innerHTML = actions.length
+    ? actions.map(a=>`<div class="alert-row ${a.color}"><div class="alert-icon">${a.icon}</div><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-desc">${a.desc}</div></div></div>`).join('')
+    : '<div style="color:var(--green);font-size:13px">✅ Nenhuma ação urgente agora!</div>';
+}
+
+function renderDaySummary(){
+  const orders=state.orders||[];
+  const byHour={};
+  orders.forEach(o=>{ const h=new Date(o.date_created).getHours(); byHour[h]=(byHour[h]||0)+1; });
+  const peakHour=Object.entries(byHour).sort((a,b)=>b[1]-a[1])[0];
+
+  document.getElementById('day-summary').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Total de pedidos</span><span class="mono" style="font-weight:600">${orders.length}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Horário de pico</span><span class="mono" style="font-weight:600">${peakHour?peakHour[0]+'h':'—'}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Taxa de cancelamento</span><span class="mono" style="font-weight:600;color:var(--red)">${orders.length?((orders.filter(o=>o.status==='cancelled').length/orders.length)*100).toFixed(1):0}%</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Devoluções / Pedidos</span><span class="mono" style="font-weight:600">${orders.length?(((state.returns||[]).length/orders.length)*100).toFixed(1):0}%</span></div>
+    </div>`;
+}
+
+function renderReturnsClaims(){
+  const returns=state.returns||[];
+  const claims=state.claims||[];
+  document.getElementById('returns-detail-badge').textContent=returns.length;
+  document.getElementById('claims-detail-badge').textContent=claims.length;
+
+  document.getElementById('returns-list').innerHTML = returns.length ? returns.map(r=>`
+    <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:600">${r.buyer||r.reason||'Devolução #'+r.id}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${r.reason||''} · Pedido #${String(r.order_id||r.id).slice(-8)}</div>
+      </div>
+      <span class="badge ${r.status==='pending'?'b-orange':r.status==='shipped'?'b-blue':'b-green'}">${r.status==='pending'?'Pendente':r.status==='shipped'?'Em trânsito':'Entregue'}</span>
+    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--green);font-size:13px">✅ Sem devoluções abertas</div>';
+
+  document.getElementById('claims-list').innerHTML = claims.length ? claims.map(c=>`
+    <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:600">${c.buyer||'Reclamação #'+c.id}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${c.type||c.stage||''} · Pedido #${String(c.order_id||c.id).slice(-8)}</div>
+      </div>
+      <span class="badge ${c.status==='opened'?'b-red':c.status==='waiting_seller'?'b-orange':'b-blue'}">${c.status==='opened'?'Aberta':c.status==='waiting_seller'?'Aguarda você':'Em mediação'}</span>
+    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--green);font-size:13px">✅ Sem reclamações abertas</div>';
+}
+
+function renderHourChart(){
+  const orders=state.orders||[];
+  const byHour=new Array(24).fill(0);
+  orders.forEach(o=>{ const h=new Date(o.date_created).getHours(); byHour[h]++; });
+  const max=Math.max(...byHour,1);
+  document.getElementById('hour-chart').innerHTML = byHour.map((v,h)=>
+    `<div class="hour-bar" style="height:${Math.max(3,v/max*76)}px" data-val="${h}h: ${v}"></div>`
+  ).join('');
+}
+
+(function init(){
+  if(loadCreds()){
+    document.getElementById('inp-token').value=state.token||'';
+    document.getElementById('inp-refresh').value=state.refreshToken||'';
+    document.getElementById('inp-appid').value=state.appId||'';
+    document.getElementById('inp-secret').value=state.appSecret||'';
+    document.getElementById('inp-seller').value=state.sellerId||'';
+    document.getElementById('inp-site').value=state.site||'MLB';
+    startApp();
+  }
+})();
+</script>
+</body>
+</html>
