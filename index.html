@@ -472,9 +472,9 @@ const state = {
 const LS_KEY='ml_logistics_creds_v1';
 const BASE='https://api.mercadolibre.com';
 const PROXIES=[
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?url=',
-  'https://thingproxy.freeboard.io/fetch/',
+  'https://corsproxy.io/?url=',          // gratuito ilimitado para domínios github.io — prioridade 1
+  'https://api.codetabs.com/v1/proxy/?quest=', // fallback estável, rate limit de 5/s
+  'https://api.allorigins.win/raw?url=', // último recurso — instável, rate limit 20/min
 ];
 
 function isLocal(){ return location.protocol==='file:'||location.hostname==='localhost'; }
@@ -500,7 +500,8 @@ async function mlFetch(path,opts={}){
   }
 
   for(const proxy of PROXIES){
-    const url=proxy.includes('?url=')?`${proxy}${encodeURIComponent(full)}`:`${proxy}${full}`;
+    // Todos os proxies atuais usam a URL como parâmetro de query — sempre precisa encodar
+    const url=`${proxy}${encodeURIComponent(full)}`;
     try{
       const r=await fetchWithTimeout(url,opts,20000);
       if(r.status<500) return r;
