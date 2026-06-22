@@ -98,7 +98,7 @@ main { padding:28px; max-width:1500px; margin:0 auto; }
 .hero-sub-val { font-size:20px; font-weight:700; margin-top:4px; }
 
 /* ─── STATUS GRID ─── */
-.status-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:24px; }
+.status-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
 .status-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; position:relative; cursor:pointer; transition:all 0.2s; overflow:hidden; }
 .status-card:hover { transform:translateY(-3px); border-color:var(--card-color); }
 .status-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--card-color); }
@@ -310,12 +310,6 @@ table.t tr:last-child td { border-bottom:none; }
         <div class="status-value" id="st-ready">—</div>
         <span class="status-flag b-green" id="st-ready-flag">aguardando</span>
       </div>
-      <div class="status-card" style="--card-color:#ff9f1c">
-        <span class="status-icon">⚠️</span>
-        <div class="status-label">Não Concluídas</div>
-        <div class="status-value" id="st-incomplete">—</div>
-        <span class="status-flag b-orange" id="st-incomplete-flag">aguardando</span>
-      </div>
       <div class="status-card" style="--card-color:#8b9bb0">
         <span class="status-icon">🚫</span>
         <div class="status-label">Canceladas</div>
@@ -373,7 +367,7 @@ table.t tr:last-child td { border-bottom:none; }
     <div class="panel-grid">
       <div class="card">
         <div class="card-head">
-          <span class="card-title" id="detail-panel-title">📋 Pedidos em Aberto — Acumulado</span>
+          <span class="card-title" id="detail-panel-title">📋 Pedidos em Aberto — Todo o Histórico</span>
           <span class="badge b-blue" id="detail-count-badge">0 pedidos</span>
         </div>
         <div class="card-body" style="padding:0">
@@ -703,26 +697,14 @@ async function startApp(){
     const dTo=todayEnd.toISOString().slice(0,19)+'.999-03:00';
 
     let todayOrders=[];
-    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
+    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=1000&offset=0`);
     if(firstPage){
       todayOrders=[...(firstPage.results||[])];
       const rawTotalToday = firstPage.paging?.total;
-      let offsetToday=50, failsToday=0;
-      while(offsetToday<500){
-        const page = await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${offsetToday}`);
-        if(!page || !page.results){
-          failsToday++;
-          if(failsToday>=3) break;
-          await new Promise(r=>setTimeout(r,800));
-          continue;
-        }
-        failsToday=0;
-        if(page.results.length===0) break;
-        todayOrders.push(...page.results);
-        if(rawTotalToday && offsetToday+50>=rawTotalToday) break;
-        if(page.results.length<50) break;
-        offsetToday+=50;
-        await new Promise(r=>setTimeout(r,150));
+      // Um único dia raramente passa de 1000 pedidos; se passar, busca mais uma página
+      if(rawTotalToday && rawTotalToday>1000){
+        const page2 = await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=1000&offset=1000`);
+        if(page2?.results) todayOrders.push(...page2.results);
       }
     }
     // Deduplica por ID
@@ -750,55 +732,57 @@ async function startApp(){
       }
     }
 
-    // ── Pedidos ABERTOS acumulados — últimos 60 dias, status paid (ainda não entregues/cancelados) ──
+    // ── Pedidos ABERTOS acumulados — TODO o histórico em aberto, sem limite de data ──
+    // Atrasadas precisa cobrir 100% do que está pendente, independente de quando foi criado.
+    // Para reduzir o número de chamadas, usamos limit=1000 (máximo permitido pela API)
+    // em vez de 50 — isso corta a quantidade de requisições em 20x.
     step('Buscando todos os pedidos abertos (acumulado)...');
-    const openFrom = new Date(Date.now()-60*864e5).toISOString().slice(0,19)+'.000-03:00';
     const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
+    const PAGE_LIMIT = 1000;
 
     let allOpenOrders=[];
-    const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=0`);
+    const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
 
     // ── DEBUG temporário: mostra a resposta crua da API na tela ──
     window.__debugFirstOpenPage = firstOpenPage;
-    console.log('[DEBUG] firstOpenPage completo:', JSON.stringify(firstOpenPage));
+    console.log('[DEBUG] firstOpenPage completo:', JSON.stringify(firstOpenPage)?.slice(0,500));
     console.log('[DEBUG] paging:', firstOpenPage?.paging);
     console.log('[DEBUG] results.length:', firstOpenPage?.results?.length);
 
     if(firstOpenPage){
       allOpenOrders=[...(firstOpenPage.results||[])];
       const rawTotal = firstOpenPage.paging?.total;
-      console.log('[DEBUG] rawTotal da API:', rawTotal);
+      console.log('[DEBUG] rawTotal da API (todo histórico):', rawTotal);
 
-      // Paginação SEQUENCIAL (não paralela) para não saturar o proxy CORS gratuito.
-      // Para quando: (a) bater no rawTotal real, (b) uma página vier vazia, ou (c) atingir teto de segurança.
-      const SAFETY_CAP = 1000;
-      let offset = 50;
-      let consecutiveFailures = 0;
+      // Com limit=1000, mesmo 6000 pedidos = só 6 chamadas. Lotes de 3 em paralelo
+      // continuam protegendo contra saturar o proxy CORS gratuito.
+      const SAFETY_CAP = 20000;
+      const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
+      const offsets = [];
+      for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
 
-      while(offset < SAFETY_CAP){
-        step(`Buscando pedidos abertos... ${offset} já carregados`);
-        const page = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=50&offset=${offset}`);
+      console.log('[DEBUG] total de páginas extras a buscar:', offsets.length);
 
-        if(!page || !page.results){
-          consecutiveFailures++;
-          console.warn(`[DEBUG] página offset=${offset} falhou (tentativa ${consecutiveFailures})`);
-          if(consecutiveFailures>=3) { console.warn('[DEBUG] 3 falhas seguidas — parando paginação'); break; }
-          await new Promise(r=>setTimeout(r,800)); // pausa antes de tentar de novo
-          continue;
-        }
-        consecutiveFailures=0;
+      const BATCH_SIZE = 3;
+      for(let i=0; i<offsets.length; i+=BATCH_SIZE){
+        const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
+        step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
 
-        if(page.results.length===0) { console.log('[DEBUG] página vazia em offset',offset,'— fim real dos dados'); break; }
+        const results = await Promise.all(batchOffsets.map(off=>
+          mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
+        ));
 
-        allOpenOrders.push(...page.results);
+        let gotEmpty=false;
+        results.forEach(page=>{
+          if(page && page.results){
+            allOpenOrders.push(...page.results);
+            if(page.results.length===0 || page.results.length<PAGE_LIMIT) gotEmpty=true;
+          }
+        });
 
-        // Se já bateu no total reportado pela API, para
-        if(rawTotal && offset+50>=rawTotal) { console.log('[DEBUG] atingiu rawTotal, parando'); break; }
-        // Se a página voltou com menos que o limit, é a última página
-        if(page.results.length<50) { console.log('[DEBUG] última página parcial, parando'); break; }
+        if(gotEmpty){ console.log('[DEBUG] página vazia/parcial encontrada — parando paginação'); break; }
 
-        offset+=50;
-        await new Promise(r=>setTimeout(r,150)); // pequeno respiro entre chamadas
+        await new Promise(r=>setTimeout(r,250)); // respiro entre lotes para não saturar proxy
       }
     }
     console.log('[DEBUG] allOpenOrders.length ANTES dedupe:', allOpenOrders.length);
@@ -837,9 +821,11 @@ async function startApp(){
       const sh=o.shipping||{};
       return sh.id && (sh.status==='handling' || sh.status==='ready_to_ship' || sh.status==='pending');
     });
-    const delayTargets = candidatesForDelay.slice(0,200); // reduzido para não saturar o proxy
-    for(let i=0;i<delayTargets.length;i+=4){
-      const batch = delayTargets.slice(i,i+4);
+    // Sem limite artificial — Atrasadas é o indicador mais crítico do painel e precisa
+    // cobrir 100% dos pedidos em aberto, não uma amostra.
+    const delayTargets = candidatesForDelay;
+    for(let i=0;i<delayTargets.length;i+=5){
+      const batch = delayTargets.slice(i,i+5);
       step(`Verificando atrasos... ${i+batch.length}/${delayTargets.length}`);
       const group = await Promise.all(batch.map(o=>
         mlGet(`/shipments/${o.shipping.id}/delays`).then(res=>({orderId:o.id, delays:res}))
@@ -851,9 +837,9 @@ async function startApp(){
           target.delayed = !!(delays && delays.delays && delays.delays.length>0);
         }
       });
-      await new Promise(r=>setTimeout(r,200)); // respiro entre lotes
+      await new Promise(r=>setTimeout(r,180)); // respiro entre lotes
     }
-    // Pedidos não verificados (fora do batch) ficam sem delayed=true por padrão
+    // Pedidos não verificados ficam sem delayed=true por padrão
     state.openOrders.forEach(o=>{ if(o.delayed===undefined) o.delayed=false; });
 
     // state.orders agora representa o acumulado em aberto (usado nos status cards)
@@ -1002,8 +988,6 @@ function classifyOrder(o){
   if(status==='ready_to_ship' && (substatus==='printed'||substatus==='ready_to_print')) return 'labels';
   if(status==='handling' && o.delayed) return 'delayed';
   if(status==='ready_to_ship' && !o.delayed) return 'ready';
-  if(status==='handling') return 'incomplete';
-  if(!status) return 'incomplete';
   return 'other';
 }
 
@@ -1025,20 +1009,18 @@ function renderHero(){
 
 function renderStatusGrid(){
   const orders=state.orders||[];
-  const buckets={labels:0,delayed:0,ready:0,incomplete:0,cancelled:0};
+  const buckets={labels:0,delayed:0,ready:0,cancelled:0};
   orders.forEach(o=>{ const c=classifyOrder(o); if(buckets[c]!==undefined) buckets[c]++; });
 
   document.getElementById('st-labels').textContent=buckets.labels;
   document.getElementById('st-delayed').textContent=buckets.delayed;
   document.getElementById('st-ready').textContent=buckets.ready;
-  document.getElementById('st-incomplete').textContent=buckets.incomplete;
   document.getElementById('st-cancelled').textContent=buckets.cancelled;
 
   document.getElementById('st-labels-flag').textContent = buckets.labels>0?`${buckets.labels} aguardando impressão`:'tudo impresso';
   document.getElementById('st-delayed-flag').textContent = buckets.delayed>0?'🚨 ação urgente':'sem atrasos';
   document.getElementById('st-delayed-flag').className = buckets.delayed>0?'status-flag b-red':'status-flag b-green';
   document.getElementById('st-ready-flag').textContent = buckets.ready>0?'pronto p/ despachar':'nenhuma pronta';
-  document.getElementById('st-incomplete-flag').textContent = buckets.incomplete>0?'verificar pendências':'tudo ok';
   document.getElementById('st-cancelled-flag').textContent = buckets.cancelled+' hoje';
 }
 
@@ -1068,8 +1050,8 @@ function renderOrdersTable(){
   document.getElementById('orders-tbody').innerHTML = orders.length ? orders.slice(0,60).map(o=>{
     const sh=o.shipping||{};
     const cls=classifyOrder(o);
-    const priorityColor = cls==='delayed'?'#ff3b5c':cls==='incomplete'?'#ff9f1c':cls==='labels'?'#3483fa':'#00e5a0';
-    const priorityLabel = cls==='delayed'?'Urgente':cls==='incomplete'?'Verificar':cls==='labels'?'Imprimir':cls==='cancelled'?'—':'OK';
+    const priorityColor = cls==='delayed'?'#ff3b5c':cls==='labels'?'#3483fa':cls==='ready'?'#00e5a0':'#8b9bb0';
+    const priorityLabel = cls==='delayed'?'Urgente':cls==='labels'?'Imprimir':cls==='ready'?'OK':cls==='cancelled'?'—':'—';
     return `<tr>
       <td class="mono">#${String(o.id).slice(-8)}</td>
       <td>${o.buyer?.nickname||'—'}</td>
