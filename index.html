@@ -749,16 +749,18 @@ async function startApp(){
       }
     }
 
-    // ── Pedidos ABERTOS acumulados — TODO o histórico em aberto, sem limite de data ──
+    // ── Pedidos ABERTOS acumulados — TODO o histórico em aberto ──
     // Atrasadas precisa cobrir 100% do que está pendente, independente de quando foi criado.
-    // Para reduzir o número de chamadas, usamos limit=1000 (máximo permitido pela API)
-    // em vez de 50 — isso corta a quantidade de requisições em 20x.
+    // A API do ML exige date_created.from + date_created.to em par — não aceita só um dos dois (erro 400).
+    // Por isso usamos uma data bem antiga como "from" (2 anos atrás) para efetivamente cobrir
+    // todo o histórico relevante sem cortar nada na prática.
     step('Buscando todos os pedidos abertos (acumulado)...');
+    const openFrom = new Date(Date.now()-730*864e5).toISOString().slice(0,19)+'.000-03:00'; // ~2 anos atrás
     const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
     const PAGE_LIMIT = 1000;
 
     let allOpenOrders=[];
-    const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
+    const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
 
     // ── DEBUG temporário: mostra a resposta crua da API na tela ──
     window.__debugFirstOpenPage = firstOpenPage;
@@ -786,7 +788,7 @@ async function startApp(){
         step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
 
         const results = await Promise.all(batchOffsets.map(off=>
-          mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
+          mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
         ));
 
         let gotEmpty=false;
