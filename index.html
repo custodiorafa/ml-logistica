@@ -98,7 +98,7 @@ main { padding:28px; max-width:1500px; margin:0 auto; }
 .hero-sub-val { font-size:20px; font-weight:700; margin-top:4px; }
 
 /* ─── STATUS GRID ─── */
-.status-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:24px; }
+.status-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
 .status-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; position:relative; cursor:pointer; transition:all 0.2s; overflow:hidden; }
 .status-card:hover { transform:translateY(-3px); border-color:var(--card-color); }
 .status-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--card-color); }
@@ -232,6 +232,11 @@ table.t tr:last-child td { border-bottom:none; }
   <div class="loader"></div>
   <div class="loading-text">Sincronizando operações...</div>
   <div class="loading-step" id="loading-step">Conectando à API...</div>
+  <div style="margin-top:18px;font-size:11px;color:var(--muted);font-family:var(--mono)" id="loading-elapsed">0s</div>
+  <div style="margin-top:24px;max-width:380px;text-align:center;background:rgba(255,159,28,0.08);border:1px solid rgba(255,159,28,0.25);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--orange);line-height:1.6">
+    ⚠️ <strong>Não recarregue a página.</strong><br>
+    Com grande volume de pedidos, esse processo pode levar 1-2 minutos. Recarregar agora reinicia tudo do zero.
+  </div>
 </div>
 
 <div id="token-bar-wrap">
@@ -310,17 +315,38 @@ table.t tr:last-child td { border-bottom:none; }
         <div class="status-value" id="st-ready">—</div>
         <span class="status-flag b-green" id="st-ready-flag">aguardando</span>
       </div>
-      <div class="status-card" style="--card-color:#ff9f1c">
-        <span class="status-icon">⚠️</span>
-        <div class="status-label">Não Concluídas</div>
-        <div class="status-value" id="st-incomplete">—</div>
-        <span class="status-flag b-orange" id="st-incomplete-flag">aguardando</span>
-      </div>
       <div class="status-card" style="--card-color:#8b9bb0">
         <span class="status-icon">🚫</span>
         <div class="status-label">Canceladas</div>
         <div class="status-value" id="st-cancelled">—</div>
         <span class="status-flag b-gray" id="st-cancelled-flag">aguardando</span>
+      </div>
+    </div>
+
+    <!-- Formas de Entrega -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-head">
+        <span class="card-title">🚚 Formas de Entrega — Pedidos de Hoje</span>
+        <span class="badge b-blue" id="shipping-total-badge">0 pedidos</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">⚡ Envios Flex</div>
+            <div style="font-size:28px;font-weight:700" id="ship-flex-count">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-flex-detail">aguardando...</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">🏢 Agências ML</div>
+            <div style="font-size:28px;font-weight:700" id="ship-agency-count">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-agency-detail">aguardando...</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">📦 Mercado Envios Full</div>
+            <div style="font-size:28px;font-weight:700" id="ship-full-count">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-full-detail">aguardando...</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -346,7 +372,7 @@ table.t tr:last-child td { border-bottom:none; }
     <div class="panel-grid">
       <div class="card">
         <div class="card-head">
-          <span class="card-title" id="detail-panel-title">📋 Pedidos do Dia — Detalhado</span>
+          <span class="card-title" id="detail-panel-title">📋 Pedidos em Aberto — Todo o Histórico</span>
           <span class="badge b-blue" id="detail-count-badge">0 pedidos</span>
         </div>
         <div class="card-body" style="padding:0">
@@ -376,6 +402,10 @@ table.t tr:last-child td { border-bottom:none; }
             <div style="color:var(--muted);font-size:13px">Carregando...</div>
           </div>
         </div>
+        <div class="card" style="margin-top:18px;border-color:rgba(255,159,28,0.3)">
+          <div class="card-head"><span class="card-title">🔍 Diagnóstico (temporário)</span></div>
+          <div class="card-body" id="debug-panel" style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap">Carregando...</div>
+        </div>
       </div>
     </div>
 
@@ -403,6 +433,30 @@ table.t tr:last-child td { border-bottom:none; }
         </div>
       </div>
     </div>
+    <div class="panel-grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">📦 Produtos Vendidos Hoje</span>
+          <span class="badge b-green" id="products-today-badge">0 itens</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="scroll">
+            <table class="t">
+              <thead><tr><th>Produto</th><th>Qtd</th><th>Receita</th><th>Pedidos</th></tr></thead>
+              <tbody id="products-today-tbody">
+                <tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">🏆 Top 5 Mais Vendidos Hoje</span></div>
+        <div class="card-body" id="top-products-bars">
+          <div style="color:var(--muted);font-size:13px">Carregando...</div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -417,26 +471,44 @@ const state = {
 };
 const LS_KEY='ml_logistics_creds_v1';
 const BASE='https://api.mercadolibre.com';
-const PROXIES=['https://corsproxy.io/?url=','https://api.allorigins.win/raw?url='];
+const PROXIES=[
+  'https://corsproxy.io/?url=',          // gratuito ilimitado para domínios github.io — prioridade 1
+  'https://api.codetabs.com/v1/proxy/?quest=', // fallback estável, rate limit de 5/s
+  'https://api.allorigins.win/raw?url=', // último recurso — instável, rate limit 20/min
+];
 
 function isLocal(){ return location.protocol==='file:'||location.hostname==='localhost'; }
 
 async function fetchWithTimeout(url,opts={},ms=12000){
   const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),ms);
-  try{ const r=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(tid); return r; }
+  try{ const r=await fetch(url,{...opts,signal:ctrl.signal,mode:'cors'}); clearTimeout(tid); return r; }
   catch(e){ clearTimeout(tid); throw e; }
 }
 
 async function mlFetch(path,opts={}){
   const full=`${BASE}${path}`;
+  let lastError=null;
+
+  // GitHub Pages é servido via HTTPS, mas a API do ML ainda bloqueia CORS
+  // em browser puro (sem backend). Por isso SEMPRE tentamos os proxies em sequência,
+  // independente de ser local ou não — a tentativa direta serve só como atalho rápido.
   if(!isLocal()){
-    try{ const r=await fetchWithTimeout(full,opts); if(r.ok||r.status===401) return r; }catch(e){}
+    try{
+      const r=await fetchWithTimeout(full,opts,8000);
+      if(r.ok||r.status===401||r.status===404) return r;
+    }catch(e){ lastError=e; }
   }
+
   for(const proxy of PROXIES){
-    const url=proxy.includes('?url=')?`${proxy}${encodeURIComponent(full)}`:`${proxy}${full}`;
-    try{ const r=await fetchWithTimeout(url,opts,14000); if(r.status<500) return r; }catch(e){}
+    // Todos os proxies atuais usam a URL como parâmetro de query — sempre precisa encodar
+    const url=`${proxy}${encodeURIComponent(full)}`;
+    try{
+      const r=await fetchWithTimeout(url,opts,20000);
+      if(r.status<500) return r;
+      lastError=new Error(`proxy ${proxy} retornou ${r.status}`);
+    }catch(e){ lastError=e; console.warn('[mlFetch] proxy falhou:',proxy,e.message); }
   }
-  throw new Error('proxies falharam');
+  throw lastError||new Error('Todos os proxies falharam');
 }
 
 async function mlGet(path,retried=false){
@@ -444,9 +516,10 @@ async function mlGet(path,retried=false){
   try{
     const r=await mlFetch(path,{headers:{'Authorization':`Bearer ${state.token}`}});
     if(r.status===401&&!retried&&state.refreshToken){ const ok=await doRefreshToken(); if(ok) return mlGet(path,true); return null; }
-    if(!r.ok) return null;
+    if(r.status===404) return null; // ex: /delays sem atraso
+    if(!r.ok){ console.warn('[mlGet] status não-ok:',r.status,path); return null; }
     return r.json();
-  }catch(e){ console.error('mlGet falhou',path,e.message); return null; }
+  }catch(e){ console.error('[mlGet] falhou:',path,e.message); return null; }
 }
 
 function doLogin(){
@@ -536,19 +609,28 @@ function showToast(msg,type='ok'){
 function demoOrders(){
   const statuses=['handling','ready_to_ship','shipped','delivered','cancelled'];
   const subs={handling:['waiting_for_label_generation',null],ready_to_ship:['printed','ready_to_print'],shipped:[null],delivered:[null],cancelled:[null]};
+  const logisticTypes=['self_service','cross_docking','fulfillment']; // Flex, Agências(cross_docking=me2), Full
   const names=['Maria Silva','João Pereira','Ana Costa','Carlos Souza','Beatriz Lima','Pedro Alves','Juliana Rocha','Rafael Santos','Fernanda Dias','Lucas Martins'];
+  const products=['Fita Dupla Face 3M 12mm','Câmara de Ar Moto Aro 18','Pino Bico Graxeiro Lubrificação','Fita Isolante Anti Chama 19x10','Regulador Pressão Wabco','Lubrificante Pasta Mole 3kg'];
   const now=Date.now();
-  return Array.from({length:42},(_,i)=>{
-    const st=statuses[Math.floor(Math.random()*statuses.length)];
-    const hoursAgo=Math.random()*24;
+  // 15 atrasadas propositalmente, resto distribuído
+  return Array.from({length:68},(_,i)=>{
+    const isDelayed = i<15;
+    const st = isDelayed ? 'handling' : statuses[Math.floor(Math.random()*statuses.length)];
+    const daysAgo = isDelayed ? (1+Math.random()*4) : Math.random()*3; // atrasadas são mais antigas
     return {
       id:9000000000+i,
-      status: i<3?'paid':st==='cancelled'?'cancelled':'paid',
-      date_created: new Date(now-hoursAgo*3600000).toISOString(),
+      status: st==='cancelled'?'cancelled':'paid',
+      date_created: new Date(now-daysAgo*86400000).toISOString(),
       total_amount: 45+Math.random()*380,
       buyer:{nickname:names[i%names.length]},
-      shipping:{id:8000000000+i, status:st, substatus:subs[st]?subs[st][Math.floor(Math.random()*subs[st].length)]:null},
-      delayed: st==='ready_to_ship'&&Math.random()>0.7,
+      product_title: products[i%products.length],
+      shipping:{
+        id:8000000000+i, status:st,
+        substatus:subs[st]?subs[st][Math.floor(Math.random()*subs[st].length)]:null,
+        logistic_type: logisticTypes[i%logisticTypes.length],
+      },
+      delayed: isDelayed,
     };
   });
 }
@@ -579,17 +661,36 @@ async function startApp(){
   document.getElementById('loading-screen').style.display='flex';
   const step=(t)=>document.getElementById('loading-step').textContent=t;
 
+  // Contador de tempo decorrido + aviso de não recarregar
+  const loadStart = Date.now();
+  const elapsedInterval = setInterval(()=>{
+    const s = Math.floor((Date.now()-loadStart)/1000);
+    const el = document.getElementById('loading-elapsed');
+    if(el) el.textContent = s+'s';
+  }, 1000);
+  const beforeUnloadHandler = (e)=>{ e.preventDefault(); e.returnValue=''; return ''; };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+
   step('Conectando à API...');
   await new Promise(r=>setTimeout(r,400));
 
   if(!state.isDemo && state.tokenExpiresAt && Date.now()>state.tokenExpiresAt && state.refreshToken){
     step('Renovando token...');
     const ok=await doRefreshToken();
-    if(!ok){ logout(); return; }
+    if(!ok){ clearInterval(elapsedInterval); window.removeEventListener('beforeunload', beforeUnloadHandler); logout(); return; }
   }
 
   if(state.isDemo){
-    state.orders=demoOrders();
+    const all = demoOrders();
+    state.orders = all; // acumulado em aberto (demo já simula isso)
+    state.ordersToday = all.filter(o=>{
+      const d=new Date(o.date_created); const today=new Date();
+      return d.toDateString()===today.toDateString();
+    });
+    if(state.ordersToday.length<5){
+      // garante pelo menos alguns pedidos "hoje" pro demo ficar realista
+      state.ordersToday = all.slice(0,12).map(o=>({...o, date_created:new Date().toISOString()}));
+    }
     state.returns=demoReturns();
     state.claims=demoClaims();
     document.getElementById('seller-name').textContent='LOJA DEMO · Seller 123456789';
@@ -597,6 +698,8 @@ async function startApp(){
     step('Verificando conta...');
     const user=await mlGet(`/users/${state.sellerId}`);
     if(!user){
+      clearInterval(elapsedInterval);
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
       document.getElementById('loading-screen').style.display='none';
       document.getElementById('auth-screen').style.display='flex';
       document.getElementById('auth-error-hint').style.display='block';
@@ -611,21 +714,156 @@ async function startApp(){
     const dFrom=todayStart.toISOString().slice(0,19)+'.000-03:00';
     const dTo=todayEnd.toISOString().slice(0,19)+'.999-03:00';
 
-    let allOrders=[];
-    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
+    let todayOrders=[];
+    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=1000&offset=0`);
     if(firstPage){
-      allOrders=[...(firstPage.results||[])];
-      const total=firstPage.paging?.total||allOrders.length;
-      const fetches=[];
-      for(let off=50; off<Math.min(total,500); off+=50){
-        fetches.push(mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`));
-      }
-      for(let i=0;i<fetches.length;i+=5){
-        const group=await Promise.all(fetches.slice(i,i+5));
-        group.forEach(r=>{ if(r?.results) allOrders.push(...r.results); });
+      todayOrders=[...(firstPage.results||[])];
+      const rawTotalToday = firstPage.paging?.total;
+      // Um único dia raramente passa de 1000 pedidos; se passar, busca mais uma página
+      if(rawTotalToday && rawTotalToday>1000){
+        const page2 = await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=1000&offset=1000`);
+        if(page2?.results) todayOrders.push(...page2.results);
       }
     }
-    state.orders=allOrders;
+    // Deduplica por ID
+    const seenTodayIds=new Set();
+    todayOrders = todayOrders.filter(o=>{
+      if(seenTodayIds.has(o.id)) return false;
+      seenTodayIds.add(o.id); return true;
+    });
+    state.ordersToday = todayOrders;
+
+    // Garante order_items completos nos pedidos de hoje (necessário para produtos vendidos)
+    if(todayOrders.length){
+      step('Carregando produtos vendidos hoje...');
+      const needsDetail = todayOrders.filter(o=>!o.order_items || !o.order_items.length);
+      const detailFetches = needsDetail.slice(0,80).map(o=>mlGet(`/orders/${o.id}`));
+      for(let i=0;i<detailFetches.length;i+=8){
+        const group = await Promise.all(detailFetches.slice(i,i+8));
+        group.forEach((full,idx)=>{
+          if(full){
+            const orig = needsDetail[i+idx];
+            const target = todayOrders.find(o=>o.id===orig.id);
+            if(target) target.order_items = full.order_items || [];
+          }
+        });
+      }
+    }
+
+    // ── Pedidos ABERTOS acumulados — TODO o histórico em aberto ──
+    // Atrasadas precisa cobrir 100% do que está pendente, independente de quando foi criado.
+    // A API do ML exige date_created.from + date_created.to em par — não aceita só um dos dois (erro 400).
+    // Por isso usamos uma data bem antiga como "from" (2 anos atrás) para efetivamente cobrir
+    // todo o histórico relevante sem cortar nada na prática.
+    step('Buscando todos os pedidos abertos (acumulado)...');
+    const openFrom = new Date(Date.now()-730*864e5).toISOString().slice(0,19)+'.000-03:00'; // ~2 anos atrás
+    const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
+    const PAGE_LIMIT = 1000;
+
+    let allOpenOrders=[];
+    const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
+
+    // ── DEBUG temporário: mostra a resposta crua da API na tela ──
+    window.__debugFirstOpenPage = firstOpenPage;
+    console.log('[DEBUG] firstOpenPage completo:', JSON.stringify(firstOpenPage)?.slice(0,500));
+    console.log('[DEBUG] paging:', firstOpenPage?.paging);
+    console.log('[DEBUG] results.length:', firstOpenPage?.results?.length);
+
+    if(firstOpenPage){
+      allOpenOrders=[...(firstOpenPage.results||[])];
+      const rawTotal = firstOpenPage.paging?.total;
+      console.log('[DEBUG] rawTotal da API (todo histórico):', rawTotal);
+
+      // Com limit=1000, mesmo 6000 pedidos = só 6 chamadas. Lotes de 3 em paralelo
+      // continuam protegendo contra saturar o proxy CORS gratuito.
+      const SAFETY_CAP = 20000;
+      const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
+      const offsets = [];
+      for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
+
+      console.log('[DEBUG] total de páginas extras a buscar:', offsets.length);
+
+      const BATCH_SIZE = 3;
+      for(let i=0; i<offsets.length; i+=BATCH_SIZE){
+        const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
+        step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
+
+        const results = await Promise.all(batchOffsets.map(off=>
+          mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
+        ));
+
+        let gotEmpty=false;
+        results.forEach(page=>{
+          if(page && page.results){
+            allOpenOrders.push(...page.results);
+            if(page.results.length===0 || page.results.length<PAGE_LIMIT) gotEmpty=true;
+          }
+        });
+
+        if(gotEmpty){ console.log('[DEBUG] página vazia/parcial encontrada — parando paginação'); break; }
+
+        await new Promise(r=>setTimeout(r,250)); // respiro entre lotes para não saturar proxy
+      }
+    }
+    console.log('[DEBUG] allOpenOrders.length ANTES dedupe:', allOpenOrders.length);
+    // Deduplica por ID (proxies/retries podem repetir resultados) e filtra entregues/cancelados
+    const seenIds=new Set();
+    state.openOrders = allOpenOrders.filter(o=>{
+      if(seenIds.has(o.id)) return false;
+      seenIds.add(o.id);
+      const sh=o.shipping||{};
+      return sh.status!=='delivered' && o.status!=='cancelled';
+    });
+    console.log('[DEBUG] state.openOrders.length DEPOIS dedupe+filtro:', state.openOrders.length);
+    console.log('[DEBUG] amostra de 3 pedidos abertos:', state.openOrders.slice(0,3));
+    const statusCounts={};
+    state.openOrders.forEach(o=>{ const s=o.shipping?.status||'sem_status'; statusCounts[s]=(statusCounts[s]||0)+1; });
+    console.log('[DEBUG] contagem por shipping.status:', statusCounts);
+
+    // Salva tudo para exibir no painel visível
+    state.debugInfo = {
+      firstOpenPageOk: !!firstOpenPage,
+      rawTotal: firstOpenPage?.paging?.total,
+      rawResultsLen: firstOpenPage?.results?.length,
+      allOpenBeforeDedup: allOpenOrders.length,
+      openAfterDedup: state.openOrders.length,
+      statusCounts,
+      sampleOrder: state.openOrders[0] ? {
+        id: state.openOrders[0].id,
+        status: state.openOrders[0].status,
+        shipping: state.openOrders[0].shipping,
+      } : null,
+    };
+
+    // ── Verifica atraso REAL via /shipments/{id}/delays para cada pedido em handling/ready_to_ship ──
+    step('Verificando atrasos reais de envio...');
+    const candidatesForDelay = state.openOrders.filter(o=>{
+      const sh=o.shipping||{};
+      return sh.id && (sh.status==='handling' || sh.status==='ready_to_ship' || sh.status==='pending');
+    });
+    // Sem limite artificial — Atrasadas é o indicador mais crítico do painel e precisa
+    // cobrir 100% dos pedidos em aberto, não uma amostra.
+    const delayTargets = candidatesForDelay;
+    for(let i=0;i<delayTargets.length;i+=5){
+      const batch = delayTargets.slice(i,i+5);
+      step(`Verificando atrasos... ${i+batch.length}/${delayTargets.length}`);
+      const group = await Promise.all(batch.map(o=>
+        mlGet(`/shipments/${o.shipping.id}/delays`).then(res=>({orderId:o.id, delays:res}))
+      ));
+      group.forEach(({orderId,delays})=>{
+        const target = state.openOrders.find(o=>o.id===orderId);
+        if(target){
+          // /delays retorna 404 (null aqui) quando NÃO está atrasado; retorna objeto com array "delays" quando está
+          target.delayed = !!(delays && delays.delays && delays.delays.length>0);
+        }
+      });
+      await new Promise(r=>setTimeout(r,180)); // respiro entre lotes
+    }
+    // Pedidos não verificados ficam sem delayed=true por padrão
+    state.openOrders.forEach(o=>{ if(o.delayed===undefined) o.delayed=false; });
+
+    // state.orders agora representa o acumulado em aberto (usado nos status cards)
+    state.orders = state.openOrders;
 
     step('Buscando reclamações...');
     const claimsResp = await mlGet(`/marketplace/v2/claims/search?seller_id=${state.sellerId}&status=opened`);
@@ -634,6 +872,10 @@ async function startApp(){
     step('Buscando devoluções...');
     state.returns = state.claims.filter(c=>c.type==='return'||c.reason_id==='return');
   }
+
+  // Limpa o contador e remove o aviso de não recarregar — carregamento concluído
+  clearInterval(elapsedInterval);
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
 
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').style.display='block';
@@ -650,12 +892,114 @@ function refreshAll(){ renderAll(); const b=document.querySelector('.btn-refresh
 function renderAll(){
   renderHero();
   renderStatusGrid();
+  renderShippingMethods();
   renderSecondary();
   renderOrdersTable();
   renderUrgentActions();
   renderDaySummary();
   renderReturnsClaims();
+  renderProductsToday();
   renderHourChart();
+  renderDebugPanel();
+}
+
+function renderDebugPanel(){
+  const el=document.getElementById('debug-panel');
+  if(!el) return;
+  if(state.isDemo){ el.textContent='Modo demo — sem chamadas reais à API.'; return; }
+  const d=state.debugInfo;
+  if(!d){ el.textContent='Sem dados de diagnóstico ainda.'; return; }
+  el.innerHTML = `
+firstOpenPage recebido: <span style="color:${d.firstOpenPageOk?'var(--green)':'var(--red)'}">${d.firstOpenPageOk}</span>
+paging.total (API):     <span style="color:var(--yellow)">${d.rawTotal}</span>
+results na 1ª página:   ${d.rawResultsLen}
+total antes dedupe:     ${d.allOpenBeforeDedup}
+total DEPOIS dedupe:    <span style="color:var(--accent)">${d.openAfterDedup}</span>
+
+Contagem por shipping.status:
+${Object.entries(d.statusCounts||{}).map(([k,v])=>`  ${k}: ${v}`).join('\n')||'  (vazio)'}
+
+Amostra pedido[0]:
+${d.sampleOrder ? JSON.stringify(d.sampleOrder,null,2) : '(nenhum pedido aberto encontrado)'}`;
+}
+
+function getLogisticGroup(o){
+  const lt = o.shipping?.logistic_type;
+  if(lt==='self_service') return 'flex';
+  if(lt==='cross_docking'||lt==='xd_drop_off') return 'agency';
+  if(lt==='fulfillment') return 'full';
+  return 'other';
+}
+
+function renderShippingMethods(){
+  const orders=state.ordersToday||[]; // pedidos de hoje
+  const flex=orders.filter(o=>getLogisticGroup(o)==='flex');
+  const agency=orders.filter(o=>getLogisticGroup(o)==='agency');
+  const full=orders.filter(o=>getLogisticGroup(o)==='full');
+
+  document.getElementById('shipping-total-badge').textContent=`${orders.length} pedidos hoje`;
+  document.getElementById('ship-flex-count').textContent=flex.length;
+  document.getElementById('ship-agency-count').textContent=agency.length;
+  document.getElementById('ship-full-count').textContent=full.length;
+
+  const revOf=(arr)=>arr.reduce((s,o)=>s+(o.total_amount||0),0);
+  document.getElementById('ship-flex-detail').innerHTML = flex.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(flex))} faturado hoje</span>` : 'sem pedidos hoje';
+  document.getElementById('ship-agency-detail').innerHTML = agency.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(agency))} faturado hoje</span>` : 'sem pedidos hoje';
+  document.getElementById('ship-full-detail').innerHTML = full.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(full))} faturado hoje</span>` : 'sem pedidos hoje';
+}
+
+function renderProductsToday(){
+  const orders=state.ordersToday||[];
+  const productMap={};
+
+  orders.forEach(o=>{
+    if(o.status==='cancelled') return;
+    if(o.order_items && o.order_items.length){
+      o.order_items.forEach(oi=>{
+        const title=oi.item?.title||'Produto sem nome';
+        if(!productMap[title]) productMap[title]={qty:0,revenue:0,orders:0};
+        productMap[title].qty+=oi.quantity||1;
+        productMap[title].revenue+=(oi.unit_price||0)*(oi.quantity||1);
+        productMap[title].orders++;
+      });
+    } else if(o.product_title){
+      // fallback demo
+      const title=o.product_title;
+      if(!productMap[title]) productMap[title]={qty:0,revenue:0,orders:0};
+      productMap[title].qty+=1;
+      productMap[title].revenue+=o.total_amount||0;
+      productMap[title].orders++;
+    }
+  });
+
+  const sorted=Object.entries(productMap).sort((a,b)=>b[1].revenue-a[1].revenue);
+  document.getElementById('products-today-badge').textContent=`${sorted.length} itens`;
+
+  document.getElementById('products-today-tbody').innerHTML = sorted.length
+    ? sorted.map(([title,d])=>`
+        <tr>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</td>
+          <td class="mono" style="color:var(--green);font-weight:600">${d.qty}</td>
+          <td class="mono">R$${fmtMoney(d.revenue)}</td>
+          <td class="mono" style="color:var(--text2)">${d.orders}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Nenhuma venda registrada hoje ainda</td></tr>';
+
+  const top5=sorted.slice(0,5);
+  const maxQty=top5[0]?.[1].qty||1;
+  const colors=['#00e5a0','#3483fa','#ff9f1c','#b18aff','#ff3b5c'];
+  document.getElementById('top-products-bars').innerHTML = top5.length
+    ? top5.map(([title,d],i)=>`
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</span>
+            <span class="mono" style="color:${colors[i]}">${d.qty} un</span>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${d.qty/maxQty*100}%;background:${colors[i]};border-radius:3px"></div>
+          </div>
+        </div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px">Sem vendas hoje ainda</div>';
 }
 
 function fmtMoney(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -668,43 +1012,39 @@ function classifyOrder(o){
   if(status==='ready_to_ship' && (substatus==='printed'||substatus==='ready_to_print')) return 'labels';
   if(status==='handling' && o.delayed) return 'delayed';
   if(status==='ready_to_ship' && !o.delayed) return 'ready';
-  if(status==='handling') return 'incomplete';
-  if(!status) return 'incomplete';
   return 'other';
 }
 
 function renderHero(){
-  const orders=state.orders||[];
-  const paid = orders.filter(o=>o.status==='paid');
+  const ordersToday=state.ordersToday||[];
+  const paid = ordersToday.filter(o=>o.status==='paid');
   const revenue = paid.reduce((s,o)=>s+(o.total_amount||0),0);
   const avgTicket = paid.length ? revenue/paid.length : 0;
 
   document.getElementById('hero-revenue').textContent='R$ '+fmtMoney(revenue);
   document.getElementById('hero-avg-ticket').textContent='R$ '+fmtMoney(avgTicket);
   document.getElementById('hero-paid-count').textContent=paid.length;
-  document.getElementById('hero-orders-today').textContent=orders.length;
+  document.getElementById('hero-orders-today').textContent=ordersToday.length;
 
-  const cancelledCount = orders.filter(o=>o.status==='cancelled').length;
+  const cancelledCount = ordersToday.filter(o=>o.status==='cancelled').length;
   document.getElementById('hero-orders-delta').innerHTML = `<span style="color:var(--text2)">${paid.length} pagos · <span style="color:var(--red)">${cancelledCount} cancelados</span></span>`;
   document.getElementById('hero-revenue-delta').innerHTML = `<span style="color:var(--green)">▲ ${paid.length} vendas confirmadas hoje</span>`;
 }
 
 function renderStatusGrid(){
   const orders=state.orders||[];
-  const buckets={labels:0,delayed:0,ready:0,incomplete:0,cancelled:0};
+  const buckets={labels:0,delayed:0,ready:0,cancelled:0};
   orders.forEach(o=>{ const c=classifyOrder(o); if(buckets[c]!==undefined) buckets[c]++; });
 
   document.getElementById('st-labels').textContent=buckets.labels;
   document.getElementById('st-delayed').textContent=buckets.delayed;
   document.getElementById('st-ready').textContent=buckets.ready;
-  document.getElementById('st-incomplete').textContent=buckets.incomplete;
   document.getElementById('st-cancelled').textContent=buckets.cancelled;
 
   document.getElementById('st-labels-flag').textContent = buckets.labels>0?`${buckets.labels} aguardando impressão`:'tudo impresso';
   document.getElementById('st-delayed-flag').textContent = buckets.delayed>0?'🚨 ação urgente':'sem atrasos';
   document.getElementById('st-delayed-flag').className = buckets.delayed>0?'status-flag b-red':'status-flag b-green';
   document.getElementById('st-ready-flag').textContent = buckets.ready>0?'pronto p/ despachar':'nenhuma pronta';
-  document.getElementById('st-incomplete-flag').textContent = buckets.incomplete>0?'verificar pendências':'tudo ok';
   document.getElementById('st-cancelled-flag').textContent = buckets.cancelled+' hoje';
 }
 
@@ -734,8 +1074,8 @@ function renderOrdersTable(){
   document.getElementById('orders-tbody').innerHTML = orders.length ? orders.slice(0,60).map(o=>{
     const sh=o.shipping||{};
     const cls=classifyOrder(o);
-    const priorityColor = cls==='delayed'?'#ff3b5c':cls==='incomplete'?'#ff9f1c':cls==='labels'?'#3483fa':'#00e5a0';
-    const priorityLabel = cls==='delayed'?'Urgente':cls==='incomplete'?'Verificar':cls==='labels'?'Imprimir':cls==='cancelled'?'—':'OK';
+    const priorityColor = cls==='delayed'?'#ff3b5c':cls==='labels'?'#3483fa':cls==='ready'?'#00e5a0':'#8b9bb0';
+    const priorityLabel = cls==='delayed'?'Urgente':cls==='labels'?'Imprimir':cls==='ready'?'OK':cls==='cancelled'?'—':'—';
     return `<tr>
       <td class="mono">#${String(o.id).slice(-8)}</td>
       <td>${o.buyer?.nickname||'—'}</td>
@@ -804,7 +1144,7 @@ function renderReturnsClaims(){
 }
 
 function renderHourChart(){
-  const orders=state.orders||[];
+  const orders=state.ordersToday||[];
   const byHour=new Array(24).fill(0);
   orders.forEach(o=>{ const h=new Date(o.date_created).getHours(); byHour[h]++; });
   const max=Math.max(...byHour,1);
