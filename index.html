@@ -756,7 +756,11 @@ async function startApp(){
     // Por isso usamos uma data bem antiga como "from" (2 anos atrás) para efetivamente cobrir
     // todo o histórico relevante sem cortar nada na prática.
     step('Buscando todos os pedidos abertos (acumulado)...');
-    const openFrom = new Date(Date.now()-730*864e5).toISOString().slice(0,19)+'.000-03:00'; // ~2 anos atrás
+    // A API do ML rejeita (erro 400) janelas de data muito longas — testamos 2 anos e falhou.
+    // 90 dias é generoso o suficiente para cobrir qualquer pedido realmente "em aberto"
+    // (nenhum pedido fica handling/ready_to_ship por mais de alguns dias na prática) e
+    // fica dentro do limite aceito pela API.
+    const openFrom = new Date(Date.now()-90*864e5).toISOString().slice(0,19)+'.000-03:00';
     const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
     const PAGE_LIMIT = 1000;
 
