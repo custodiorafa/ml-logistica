@@ -715,14 +715,20 @@ async function startApp(){
     const dTo=todayEnd.toISOString().slice(0,19)+'.999-03:00';
 
     let todayOrders=[];
-    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=1000&offset=0`);
+    // limit máximo permitido pela API é 50 — usar valor maior causa erro 400
+    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
     if(firstPage){
       todayOrders=[...(firstPage.results||[])];
-      const rawTotalToday = firstPage.paging?.total;
-      // Um único dia raramente passa de 1000 pedidos; se passar, busca mais uma página
-      if(rawTotalToday && rawTotalToday>1000){
-        const page2 = await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=1000&offset=1000`);
-        if(page2?.results) todayOrders.push(...page2.results);
+      const rawTotalToday = Math.min(firstPage.paging?.total||todayOrders.length, 500);
+      const todayOffsets=[];
+      for(let off=50; off<rawTotalToday; off+=50) todayOffsets.push(off);
+      for(let i=0;i<todayOffsets.length;i+=3){
+        const batch=todayOffsets.slice(i,i+3);
+        const results=await Promise.all(batch.map(off=>
+          mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`)
+        ));
+        results.forEach(page=>{ if(page?.results) todayOrders.push(...page.results); });
+        await new Promise(r=>setTimeout(r,150));
       }
     }
     // Deduplica por ID
@@ -751,18 +757,17 @@ async function startApp(){
     }
 
     // ── Pedidos ABERTOS acumulados — TODO o histórico em aberto ──
-    // Atrasadas precisa cobrir 100% do que está pendente, independente de quando foi criado.
+    // ── Pedidos ABERTOS acumulados — últimos 90 dias, status paid (ainda não entregues/cancelados) ──
+    // Atrasadas precisa cobrir todo o histórico relevante de pedidos em aberto.
     // A API do ML exige date_created.from + date_created.to em par — não aceita só um dos dois (erro 400).
-    // Por isso usamos uma data bem antiga como "from" (2 anos atrás) para efetivamente cobrir
-    // todo o histórico relevante sem cortar nada na prática.
     step('Buscando todos os pedidos abertos (acumulado)...');
-    // A API do ML rejeita (erro 400) janelas de data muito longas — testamos 2 anos e falhou.
-    // 90 dias é generoso o suficiente para cobrir qualquer pedido realmente "em aberto"
-    // (nenhum pedido fica handling/ready_to_ship por mais de alguns dias na prática) e
-    // fica dentro do limite aceito pela API.
+    // A API rejeita (erro 400) janelas de data muito longas — 90 dias é seguro e cobre
+    // qualquer pedido realmente "em aberto" (nenhum fica handling/ready_to_ship por meses).
     const openFrom = new Date(Date.now()-90*864e5).toISOString().slice(0,19)+'.000-03:00';
     const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
-    const PAGE_LIMIT = 1000;
+    // IMPORTANTE: a API documenta limit máximo de 50 para /orders/search — usar valor
+    // maior causa erro 400 Bad Request (testado e confirmado).
+    const PAGE_LIMIT = 50;
 
     let allOpenOrders=[];
     const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
@@ -776,18 +781,19 @@ async function startApp(){
     if(firstOpenPage){
       allOpenOrders=[...(firstOpenPage.results||[])];
       const rawTotal = firstOpenPage.paging?.total;
-      console.log('[DEBUG] rawTotal da API (todo histórico):', rawTotal);
+      console.log('[DEBUG] rawTotal da API (90 dias):', rawTotal);
 
-      // Com limit=1000, mesmo 6000 pedidos = só 6 chamadas. Lotes de 3 em paralelo
-      // continuam protegendo contra saturar o proxy CORS gratuito.
-      const SAFETY_CAP = 20000;
+      // Com limit=50, lotes de 6 chamadas paralelas (300 pedidos por rodada) equilibram
+      // velocidade e não saturar o proxy. corsproxy.io é gratuito ilimitado para github.io,
+      // então podemos ser um pouco mais agressivos que antes.
+      const SAFETY_CAP = 10000;
       const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
       const offsets = [];
       for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
 
       console.log('[DEBUG] total de páginas extras a buscar:', offsets.length);
 
-      const BATCH_SIZE = 3;
+      const BATCH_SIZE = 6;
       for(let i=0; i<offsets.length; i+=BATCH_SIZE){
         const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
         step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
