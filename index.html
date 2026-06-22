@@ -708,169 +708,150 @@ async function startApp(){
     }
     document.getElementById('seller-name').textContent=`${user.nickname} · Seller ${state.sellerId}`;
 
-    step('Buscando pedidos de hoje...');
     const todayStart=new Date(); todayStart.setHours(0,0,0,0);
     const todayEnd=new Date(); todayEnd.setHours(23,59,59,999);
     const dFrom=todayStart.toISOString().slice(0,19)+'.000-03:00';
     const dTo=todayEnd.toISOString().slice(0,19)+'.999-03:00';
 
-    let todayOrders=[];
-    // limit máximo permitido pela API é 50 — usar valor maior causa erro 400
-    const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
-    if(firstPage){
-      todayOrders=[...(firstPage.results||[])];
-      const rawTotalToday = Math.min(firstPage.paging?.total||todayOrders.length, 500);
-      const todayOffsets=[];
-      for(let off=50; off<rawTotalToday; off+=50) todayOffsets.push(off);
-      for(let i=0;i<todayOffsets.length;i+=3){
-        const batch=todayOffsets.slice(i,i+3);
-        const results=await Promise.all(batch.map(off=>
-          mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`)
-        ));
-        results.forEach(page=>{ if(page?.results) todayOrders.push(...page.results); });
-        await new Promise(r=>setTimeout(r,150));
-      }
-    }
-    // Deduplica por ID
-    const seenTodayIds=new Set();
-    todayOrders = todayOrders.filter(o=>{
-      if(seenTodayIds.has(o.id)) return false;
-      seenTodayIds.add(o.id); return true;
-    });
-    state.ordersToday = todayOrders;
-
-    // Garante order_items completos nos pedidos de hoje (necessário para produtos vendidos)
-    if(todayOrders.length){
-      step('Carregando produtos vendidos hoje...');
-      const needsDetail = todayOrders.filter(o=>!o.order_items || !o.order_items.length);
-      const detailFetches = needsDetail.slice(0,80).map(o=>mlGet(`/orders/${o.id}`));
-      for(let i=0;i<detailFetches.length;i+=8){
-        const group = await Promise.all(detailFetches.slice(i,i+8));
-        group.forEach((full,idx)=>{
-          if(full){
-            const orig = needsDetail[i+idx];
-            const target = todayOrders.find(o=>o.id===orig.id);
-            if(target) target.order_items = full.order_items || [];
-          }
-        });
-      }
-    }
-
-    // ── Pedidos ABERTOS acumulados — TODO o histórico em aberto ──
-    // ── Pedidos ABERTOS acumulados — últimos 90 dias, status paid (ainda não entregues/cancelados) ──
-    // Atrasadas precisa cobrir todo o histórico relevante de pedidos em aberto.
-    // A API do ML exige date_created.from + date_created.to em par — não aceita só um dos dois (erro 400).
-    step('Buscando todos os pedidos abertos (acumulado)...');
-    // A API rejeita (erro 400) janelas de data muito longas — 90 dias é seguro e cobre
-    // qualquer pedido realmente "em aberto" (nenhum fica handling/ready_to_ship por meses).
-    const openFrom = new Date(Date.now()-90*864e5).toISOString().slice(0,19)+'.000-03:00';
-    const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
-    // IMPORTANTE: a API documenta limit máximo de 50 para /orders/search — usar valor
-    // maior causa erro 400 Bad Request (testado e confirmado).
-    const PAGE_LIMIT = 50;
-
-    let allOpenOrders=[];
-    const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
-
-    // ── DEBUG temporário: mostra a resposta crua da API na tela ──
-    window.__debugFirstOpenPage = firstOpenPage;
-    console.log('[DEBUG] firstOpenPage completo:', JSON.stringify(firstOpenPage)?.slice(0,500));
-    console.log('[DEBUG] paging:', firstOpenPage?.paging);
-    console.log('[DEBUG] results.length:', firstOpenPage?.results?.length);
-
-    if(firstOpenPage){
-      allOpenOrders=[...(firstOpenPage.results||[])];
-      const rawTotal = firstOpenPage.paging?.total;
-      console.log('[DEBUG] rawTotal da API (90 dias):', rawTotal);
-
-      // Com limit=50, lotes de 6 chamadas paralelas (300 pedidos por rodada) equilibram
-      // velocidade e não saturar o proxy. corsproxy.io é gratuito ilimitado para github.io,
-      // então podemos ser um pouco mais agressivos que antes.
-      const SAFETY_CAP = 10000;
-      const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
-      const offsets = [];
-      for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
-
-      console.log('[DEBUG] total de páginas extras a buscar:', offsets.length);
-
-      const BATCH_SIZE = 6;
-      for(let i=0; i<offsets.length; i+=BATCH_SIZE){
-        const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
-        step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
-
-        const results = await Promise.all(batchOffsets.map(off=>
-          mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
-        ));
-
-        let gotEmpty=false;
-        results.forEach(page=>{
-          if(page && page.results){
-            allOpenOrders.push(...page.results);
-            if(page.results.length===0 || page.results.length<PAGE_LIMIT) gotEmpty=true;
-          }
-        });
-
-        if(gotEmpty){ console.log('[DEBUG] página vazia/parcial encontrada — parando paginação'); break; }
-
-        await new Promise(r=>setTimeout(r,250)); // respiro entre lotes para não saturar proxy
-      }
-    }
-    console.log('[DEBUG] allOpenOrders.length ANTES dedupe:', allOpenOrders.length);
-    // Deduplica por ID (proxies/retries podem repetir resultados) e filtra entregues/cancelados
-    const seenIds=new Set();
-    state.openOrders = allOpenOrders.filter(o=>{
-      if(seenIds.has(o.id)) return false;
-      seenIds.add(o.id);
-      const sh=o.shipping||{};
-      return sh.status!=='delivered' && o.status!=='cancelled';
-    });
-    console.log('[DEBUG] state.openOrders.length DEPOIS dedupe+filtro:', state.openOrders.length);
-    console.log('[DEBUG] amostra de 3 pedidos abertos:', state.openOrders.slice(0,3));
-    const statusCounts={};
-    state.openOrders.forEach(o=>{ const s=o.shipping?.status||'sem_status'; statusCounts[s]=(statusCounts[s]||0)+1; });
-    console.log('[DEBUG] contagem por shipping.status:', statusCounts);
-
-    // Salva tudo para exibir no painel visível
-    state.debugInfo = {
-      firstOpenPageOk: !!firstOpenPage,
-      rawTotal: firstOpenPage?.paging?.total,
-      rawResultsLen: firstOpenPage?.results?.length,
-      allOpenBeforeDedup: allOpenOrders.length,
-      openAfterDedup: state.openOrders.length,
-      statusCounts,
-      sampleOrder: state.openOrders[0] ? {
-        id: state.openOrders[0].id,
-        status: state.openOrders[0].status,
-        shipping: state.openOrders[0].shipping,
-      } : null,
-    };
-
-    // ── Verifica atraso REAL via /shipments/{id}/delays para cada pedido em handling/ready_to_ship ──
-    step('Verificando atrasos reais de envio...');
-    const candidatesForDelay = state.openOrders.filter(o=>{
-      const sh=o.shipping||{};
-      return sh.id && (sh.status==='handling' || sh.status==='ready_to_ship' || sh.status==='pending');
-    });
-    // Sem limite artificial — Atrasadas é o indicador mais crítico do painel e precisa
-    // cobrir 100% dos pedidos em aberto, não uma amostra.
-    const delayTargets = candidatesForDelay;
-    for(let i=0;i<delayTargets.length;i+=5){
-      const batch = delayTargets.slice(i,i+5);
-      step(`Verificando atrasos... ${i+batch.length}/${delayTargets.length}`);
-      const group = await Promise.all(batch.map(o=>
-        mlGet(`/shipments/${o.shipping.id}/delays`).then(res=>({orderId:o.id, delays:res}))
-      ));
-      group.forEach(({orderId,delays})=>{
-        const target = state.openOrders.find(o=>o.id===orderId);
-        if(target){
-          // /delays retorna 404 (null aqui) quando NÃO está atrasado; retorna objeto com array "delays" quando está
-          target.delayed = !!(delays && delays.delays && delays.delays.length>0);
+    // ── Função: busca pedidos de HOJE (alimenta Faturamento/Pedidos do Dia) ──
+    async function fetchTodayOrders(){
+      let todayOrders=[];
+      const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
+      if(firstPage){
+        todayOrders=[...(firstPage.results||[])];
+        const rawTotalToday = Math.min(firstPage.paging?.total||todayOrders.length, 500);
+        const todayOffsets=[];
+        for(let off=50; off<rawTotalToday; off+=50) todayOffsets.push(off);
+        for(let i=0;i<todayOffsets.length;i+=3){
+          const batch=todayOffsets.slice(i,i+3);
+          const results=await Promise.all(batch.map(off=>
+            mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`)
+          ));
+          results.forEach(page=>{ if(page?.results) todayOrders.push(...page.results); });
+          await new Promise(r=>setTimeout(r,150));
         }
+      }
+      const seenTodayIds=new Set();
+      todayOrders = todayOrders.filter(o=>{
+        if(seenTodayIds.has(o.id)) return false;
+        seenTodayIds.add(o.id); return true;
       });
-      await new Promise(r=>setTimeout(r,180)); // respiro entre lotes
+
+      // Garante order_items completos (necessário para produtos vendidos)
+      if(todayOrders.length){
+        const needsDetail = todayOrders.filter(o=>!o.order_items || !o.order_items.length);
+        const detailFetches = needsDetail.slice(0,80).map(o=>mlGet(`/orders/${o.id}`));
+        for(let i=0;i<detailFetches.length;i+=8){
+          const group = await Promise.all(detailFetches.slice(i,i+8));
+          group.forEach((full,idx)=>{
+            if(full){
+              const orig = needsDetail[i+idx];
+              const target = todayOrders.find(o=>o.id===orig.id);
+              if(target) target.order_items = full.order_items || [];
+            }
+          });
+        }
+      }
+      return todayOrders;
     }
-    // Pedidos não verificados ficam sem delayed=true por padrão
-    state.openOrders.forEach(o=>{ if(o.delayed===undefined) o.delayed=false; });
+
+    // ── Função: busca pedidos ABERTOS últimos 30 dias (alimenta Status/Atrasadas/Formas de Entrega) ──
+    async function fetchOpenOrders(){
+      // A API rejeita (erro 400) janelas de data muito longas — 30 dias é seguro e cobre
+      // qualquer pedido realmente "em aberto" (nenhum fica handling/ready_to_ship por meses).
+      const openFrom = new Date(Date.now()-30*864e5).toISOString().slice(0,19)+'.000-03:00';
+      const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
+      // IMPORTANTE: a API documenta limit máximo de 50 para /orders/search — usar valor
+      // maior causa erro 400 Bad Request (testado e confirmado).
+      const PAGE_LIMIT = 50;
+
+      let allOpenOrders=[];
+      const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
+
+      window.__debugFirstOpenPage = firstOpenPage;
+      console.log('[DEBUG] firstOpenPage completo:', JSON.stringify(firstOpenPage)?.slice(0,500));
+
+      if(firstOpenPage){
+        allOpenOrders=[...(firstOpenPage.results||[])];
+        const rawTotal = firstOpenPage.paging?.total;
+        console.log('[DEBUG] rawTotal da API (30 dias):', rawTotal);
+
+        const SAFETY_CAP = 10000;
+        const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
+        const offsets = [];
+        for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
+
+        const BATCH_SIZE = 8;
+        for(let i=0; i<offsets.length; i+=BATCH_SIZE){
+          const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
+          step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
+
+          const results = await Promise.all(batchOffsets.map(off=>
+            mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
+          ));
+
+          let gotEmpty=false;
+          results.forEach(page=>{
+            if(page && page.results){
+              allOpenOrders.push(...page.results);
+              if(page.results.length===0 || page.results.length<PAGE_LIMIT) gotEmpty=true;
+            }
+          });
+
+          if(gotEmpty){ console.log('[DEBUG] página vazia/parcial — parando paginação'); break; }
+          await new Promise(r=>setTimeout(r,120));
+        }
+      }
+
+      const seenIds=new Set();
+      const openOrders = allOpenOrders.filter(o=>{
+        if(seenIds.has(o.id)) return false;
+        seenIds.add(o.id);
+        const sh=o.shipping||{};
+        return sh.status!=='delivered' && o.status!=='cancelled';
+      });
+
+      const statusCounts={};
+      openOrders.forEach(o=>{ const s=o.shipping?.status||'sem_status'; statusCounts[s]=(statusCounts[s]||0)+1; });
+
+      state.debugInfo = {
+        firstOpenPageOk: !!firstOpenPage,
+        rawTotal: firstOpenPage?.paging?.total,
+        rawResultsLen: firstOpenPage?.results?.length,
+        allOpenBeforeDedup: allOpenOrders.length,
+        openAfterDedup: openOrders.length,
+        statusCounts,
+        sampleOrder: openOrders[0] ? { id: openOrders[0].id, status: openOrders[0].status, shipping: openOrders[0].shipping } : null,
+      };
+
+      return openOrders;
+    }
+
+    // ── Dispara as duas buscas em PARALELO de verdade — não espera uma terminar para começar a outra ──
+    step('Buscando pedidos de hoje e pedidos abertos em paralelo...');
+    const [todayOrders, openOrders] = await Promise.all([
+      fetchTodayOrders(),
+      fetchOpenOrders(),
+    ]);
+
+    state.ordersToday = todayOrders;
+    state.openOrders = openOrders;
+
+    // ── Estima atraso por HEURÍSTICA DE DATA, sem chamada à API por pedido ──
+    // A verificação real via /shipments/{id}/delays é precisa mas exige 1 chamada por pedido,
+    // o que é o trecho mais lento do carregamento com alto volume. Na prática, um pedido em
+    // handling há mais de 2 dias, ou ready_to_ship há mais de 4 dias sem despachar, já é
+    // atraso real na maioria dos casos — e isso calcula instantaneamente, sem requisições extra.
+    step('Calculando atrasos por data...');
+    const now = Date.now();
+    state.openOrders.forEach(o=>{
+      const sh = o.shipping||{};
+      if(!o.date_created){ o.delayed=false; return; }
+      const ageDays = (now - new Date(o.date_created).getTime()) / 864e5;
+      if(sh.status==='handling' && ageDays>2) o.delayed=true;
+      else if(sh.status==='ready_to_ship' && ageDays>4) o.delayed=true;
+      else o.delayed=false;
+    });
 
     // state.orders agora representa o acumulado em aberto (usado nos status cards)
     state.orders = state.openOrders;
@@ -878,8 +859,7 @@ async function startApp(){
     step('Buscando reclamações...');
     const claimsResp = await mlGet(`/marketplace/v2/claims/search?seller_id=${state.sellerId}&status=opened`);
     state.claims = claimsResp?.data || claimsResp?.results || [];
-
-    step('Buscando devoluções...');
+    // Devoluções são um subconjunto das reclamações já buscadas — sem chamada extra à API
     state.returns = state.claims.filter(c=>c.type==='return'||c.reason_id==='return');
   }
 
