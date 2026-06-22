@@ -232,6 +232,11 @@ table.t tr:last-child td { border-bottom:none; }
   <div class="loader"></div>
   <div class="loading-text">Sincronizando operações...</div>
   <div class="loading-step" id="loading-step">Conectando à API...</div>
+  <div style="margin-top:18px;font-size:11px;color:var(--muted);font-family:var(--mono)" id="loading-elapsed">0s</div>
+  <div style="margin-top:24px;max-width:380px;text-align:center;background:rgba(255,159,28,0.08);border:1px solid rgba(255,159,28,0.25);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--orange);line-height:1.6">
+    ⚠️ <strong>Não recarregue a página.</strong><br>
+    Com grande volume de pedidos, esse processo pode levar 1-2 minutos. Recarregar agora reinicia tudo do zero.
+  </div>
 </div>
 
 <div id="token-bar-wrap">
@@ -655,13 +660,23 @@ async function startApp(){
   document.getElementById('loading-screen').style.display='flex';
   const step=(t)=>document.getElementById('loading-step').textContent=t;
 
+  // Contador de tempo decorrido + aviso de não recarregar
+  const loadStart = Date.now();
+  const elapsedInterval = setInterval(()=>{
+    const s = Math.floor((Date.now()-loadStart)/1000);
+    const el = document.getElementById('loading-elapsed');
+    if(el) el.textContent = s+'s';
+  }, 1000);
+  const beforeUnloadHandler = (e)=>{ e.preventDefault(); e.returnValue=''; return ''; };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+
   step('Conectando à API...');
   await new Promise(r=>setTimeout(r,400));
 
   if(!state.isDemo && state.tokenExpiresAt && Date.now()>state.tokenExpiresAt && state.refreshToken){
     step('Renovando token...');
     const ok=await doRefreshToken();
-    if(!ok){ logout(); return; }
+    if(!ok){ clearInterval(elapsedInterval); window.removeEventListener('beforeunload', beforeUnloadHandler); logout(); return; }
   }
 
   if(state.isDemo){
@@ -682,6 +697,8 @@ async function startApp(){
     step('Verificando conta...');
     const user=await mlGet(`/users/${state.sellerId}`);
     if(!user){
+      clearInterval(elapsedInterval);
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
       document.getElementById('loading-screen').style.display='none';
       document.getElementById('auth-screen').style.display='flex';
       document.getElementById('auth-error-hint').style.display='block';
@@ -852,6 +869,10 @@ async function startApp(){
     step('Buscando devoluções...');
     state.returns = state.claims.filter(c=>c.type==='return'||c.reason_id==='return');
   }
+
+  // Limpa o contador e remove o aviso de não recarregar — carregamento concluído
+  clearInterval(elapsedInterval);
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
 
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('app').style.display='block';
