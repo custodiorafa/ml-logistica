@@ -258,6 +258,7 @@ table.t tr:last-child td { border-bottom:none; }
     <div class="topbar-right">
       <div class="live-pill"><div class="live-dot"></div> LIVE</div>
       <div class="clock-display" id="live-clock">--:--:--</div>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)" id="last-sync-label">sync: —</div>
       <button class="btn-refresh" onclick="refreshAll()">↻ Atualizar</button>
       <button class="btn-logout" onclick="logout()">Sair</button>
     </div>
@@ -350,25 +351,6 @@ table.t tr:last-child td { border-bottom:none; }
       </div>
     </div>
 
-    <div class="secondary-row">
-      <div class="secondary-card danger">
-        <div class="secondary-head">
-          <div class="secondary-title">↩️ Devoluções Abertas</div>
-          <span class="badge b-red" id="returns-badge">0 ativas</span>
-        </div>
-        <div class="secondary-count" style="color:var(--red)" id="returns-count">—</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:6px" id="returns-summary">Carregando...</div>
-      </div>
-      <div class="secondary-card danger">
-        <div class="secondary-head">
-          <div class="secondary-title">⚖️ Reclamações Mercado Livre</div>
-          <span class="badge b-orange" id="claims-badge">0 ativas</span>
-        </div>
-        <div class="secondary-count" style="color:var(--orange)" id="claims-count">—</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:6px" id="claims-summary">Carregando...</div>
-      </div>
-    </div>
-
     <div class="panel-grid">
       <div class="card">
         <div class="card-head">
@@ -390,12 +372,6 @@ table.t tr:last-child td { border-bottom:none; }
       </div>
 
       <div>
-        <div class="card" style="margin-bottom:18px">
-          <div class="card-head"><span class="card-title">🚨 Ação Imediata</span></div>
-          <div class="card-body" id="urgent-actions" style="padding:14px 16px">
-            <div style="color:var(--muted);font-size:13px">Calculando prioridades...</div>
-          </div>
-        </div>
         <div class="card">
           <div class="card-head"><span class="card-title">📊 Resumo do Dia</span></div>
           <div class="card-body" id="day-summary">
@@ -409,30 +385,6 @@ table.t tr:last-child td { border-bottom:none; }
       </div>
     </div>
 
-    <div class="panel-grid">
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">↩️ Devoluções — Detalhado</span>
-          <span class="badge b-red" id="returns-detail-badge">0</span>
-        </div>
-        <div class="card-body" style="padding:0">
-          <div class="scroll" id="returns-list">
-            <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Carregando devoluções...</div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">⚖️ Reclamações — Detalhado</span>
-          <span class="badge b-orange" id="claims-detail-badge">0</span>
-        </div>
-        <div class="card-body" style="padding:0">
-          <div class="scroll" id="claims-list">
-            <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Carregando reclamações...</div>
-          </div>
-        </div>
-      </div>
-    </div>
     <div class="panel-grid">
       <div class="card">
         <div class="card-head">
@@ -660,28 +612,41 @@ function demoClaims(){
   }));
 }
 
-async function startApp(){
-  document.getElementById('auth-screen').style.display='none';
-  document.getElementById('loading-screen').style.display='flex';
-  const step=(t)=>document.getElementById('loading-step').textContent=t;
+async function startApp(silent=false){
+  if(!silent){
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('loading-screen').style.display='flex';
+  }
+  const step=(t)=>{
+    const el=document.getElementById('loading-step');
+    if(el) el.textContent=t;
+    if(silent) console.log('[auto-sync]',t);
+  };
 
-  // Contador de tempo decorrido + aviso de não recarregar
-  const loadStart = Date.now();
-  const elapsedInterval = setInterval(()=>{
-    const s = Math.floor((Date.now()-loadStart)/1000);
-    const el = document.getElementById('loading-elapsed');
-    if(el) el.textContent = s+'s';
-  }, 1000);
-  const beforeUnloadHandler = (e)=>{ e.preventDefault(); e.returnValue=''; return ''; };
-  window.addEventListener('beforeunload', beforeUnloadHandler);
+  // Contador de tempo decorrido + aviso de não recarregar (só na primeira carga)
+  let elapsedInterval=null, beforeUnloadHandler=null;
+  if(!silent){
+    const loadStart = Date.now();
+    elapsedInterval = setInterval(()=>{
+      const s = Math.floor((Date.now()-loadStart)/1000);
+      const el = document.getElementById('loading-elapsed');
+      if(el) el.textContent = s+'s';
+    }, 1000);
+    beforeUnloadHandler = (e)=>{ e.preventDefault(); e.returnValue=''; return ''; };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+  }
+  const cleanup = ()=>{
+    if(elapsedInterval) clearInterval(elapsedInterval);
+    if(beforeUnloadHandler) window.removeEventListener('beforeunload', beforeUnloadHandler);
+  };
 
   step('Conectando à API...');
-  await new Promise(r=>setTimeout(r,400));
+  if(!silent) await new Promise(r=>setTimeout(r,400));
 
   if(!state.isDemo && state.tokenExpiresAt && Date.now()>state.tokenExpiresAt && state.refreshToken){
     step('Renovando token...');
     const ok=await doRefreshToken();
-    if(!ok){ clearInterval(elapsedInterval); window.removeEventListener('beforeunload', beforeUnloadHandler); logout(); return; }
+    if(!ok){ cleanup(); if(!silent) logout(); return; }
   }
 
   if(state.isDemo){
@@ -695,19 +660,18 @@ async function startApp(){
       // garante pelo menos alguns pedidos "hoje" pro demo ficar realista
       state.ordersToday = all.slice(0,12).map(o=>({...o, date_created:new Date().toISOString()}));
     }
-    state.returns=demoReturns();
-    state.claims=demoClaims();
     document.getElementById('seller-name').textContent='LOJA DEMO · Seller 123456789';
   } else {
     step('Verificando conta...');
     const user=await mlGet(`/users/${state.sellerId}`);
     if(!user){
-      clearInterval(elapsedInterval);
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-      document.getElementById('loading-screen').style.display='none';
-      document.getElementById('auth-screen').style.display='flex';
-      document.getElementById('auth-error-hint').style.display='block';
-      showToast('Não foi possível conectar','err');
+      cleanup();
+      if(!silent){
+        document.getElementById('loading-screen').style.display='none';
+        document.getElementById('auth-screen').style.display='flex';
+        document.getElementById('auth-error-hint').style.display='block';
+        showToast('Não foi possível conectar','err');
+      }
       return;
     }
     document.getElementById('seller-name').textContent=`${user.nickname} · Seller ${state.sellerId}`;
@@ -860,39 +824,71 @@ async function startApp(){
 
     // state.orders agora representa o acumulado em aberto (usado nos status cards)
     state.orders = state.openOrders;
-
-    step('Buscando reclamações...');
-    const claimsResp = await mlGet(`/marketplace/v2/claims/search?seller_id=${state.sellerId}&status=opened`);
-    state.claims = claimsResp?.data || claimsResp?.results || [];
-    // Devoluções são um subconjunto das reclamações já buscadas — sem chamada extra à API
-    state.returns = state.claims.filter(c=>c.type==='return'||c.reason_id==='return');
+    // Reclamações/Devoluções removidas do painel — endpoint instável (CORS) e não essencial
+    // para a operação logística do dia a dia. Reduz chamadas e acelera o carregamento.
+    state.claims = [];
+    state.returns = [];
   }
 
-  // Limpa o contador e remove o aviso de não recarregar — carregamento concluído
-  clearInterval(elapsedInterval);
-  window.removeEventListener('beforeunload', beforeUnloadHandler);
+  cleanup();
 
-  document.getElementById('loading-screen').style.display='none';
-  document.getElementById('app').style.display='block';
+  if(!silent){
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    if(!state.isDemo) scheduleAutoRefresh();
+    setInterval(updateClock,1000); updateClock();
+    startAutoSync(); // inicia o ciclo de atualização automática de dados
+  }
 
-  if(!state.isDemo) scheduleAutoRefresh();
   renderAll();
-  setInterval(updateClock,1000); updateClock();
+  state.lastSyncAt = Date.now();
+  updateLastSyncLabel();
 }
 
 function updateClock(){ document.getElementById('live-clock').textContent=new Date().toLocaleTimeString('pt-BR'); }
 
-function refreshAll(){ renderAll(); const b=document.querySelector('.btn-refresh'); b.textContent='✓ Atualizado'; setTimeout(()=>b.textContent='↻ Atualizar',2000); }
+// ── AUTO-SYNC: re-busca os dados da API periodicamente, sem precisar de F5 ──
+let autoSyncInterval=null;
+const AUTO_SYNC_MS = 3*60*1000; // 3 minutos
+
+function startAutoSync(){
+  if(autoSyncInterval) clearInterval(autoSyncInterval);
+  if(state.isDemo) return; // demo não precisa re-sincronizar
+  autoSyncInterval = setInterval(async ()=>{
+    console.log('[auto-sync] Atualizando dados automaticamente...');
+    showSyncIndicator(true);
+    await startApp(true); // modo silencioso — sem tela de loading
+    showSyncIndicator(false);
+  }, AUTO_SYNC_MS);
+}
+
+function showSyncIndicator(active){
+  const pill = document.querySelector('.live-pill');
+  if(!pill) return;
+  pill.style.opacity = active ? '0.6' : '1';
+  pill.title = active ? 'Sincronizando...' : 'Dados em tempo real';
+}
+
+function updateLastSyncLabel(){
+  const el = document.getElementById('last-sync-label');
+  if(!el || !state.lastSyncAt) return;
+  el.textContent = 'sync: '+new Date(state.lastSyncAt).toLocaleTimeString('pt-BR');
+}
+
+function refreshAll(){
+  // Botão manual "Atualizar" — força uma nova busca completa imediatamente
+  startApp(true).then(()=>{
+    const b=document.querySelector('.btn-refresh');
+    if(b){ b.textContent='✓ Atualizado'; setTimeout(()=>b.textContent='↻ Atualizar',2000); }
+  });
+}
 
 function renderAll(){
   renderHero();
   renderStatusGrid();
   renderShippingMethods();
-  renderSecondary();
   renderOrdersTable();
-  renderUrgentActions();
   renderDaySummary();
-  renderReturnsClaims();
   renderProductsToday();
   renderHourChart();
   renderDebugPanel();
@@ -1043,22 +1039,6 @@ function renderStatusGrid(){
   document.getElementById('st-cancelled-flag').textContent = buckets.cancelled+' hoje';
 }
 
-function renderSecondary(){
-  const returns=state.returns||[];
-  const claims=state.claims||[];
-  document.getElementById('returns-count').textContent=returns.length;
-  document.getElementById('returns-badge').textContent=returns.length+' ativas';
-  document.getElementById('returns-summary').textContent = returns.length
-    ? `${returns.filter(r=>r.status==='pending').length} pendentes de envio · ${returns.filter(r=>r.status==='shipped').length} em trânsito`
-    : 'Nenhuma devolução em aberto';
-
-  document.getElementById('claims-count').textContent=claims.length;
-  document.getElementById('claims-badge').textContent=claims.length+' ativas';
-  document.getElementById('claims-summary').textContent = claims.length
-    ? `${claims.filter(c=>c.status==='opened'||c.status==='waiting_seller').length} aguardando sua resposta`
-    : 'Nenhuma reclamação aberta';
-}
-
 function renderOrdersTable(){
   const orders=[...(state.orders||[])].sort((a,b)=>new Date(b.date_created)-new Date(a.date_created));
   document.getElementById('detail-count-badge').textContent=`${orders.length} pedidos`;
@@ -1082,22 +1062,6 @@ function renderOrdersTable(){
   }).join('') : '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Nenhum pedido hoje ainda</td></tr>';
 }
 
-function renderUrgentActions(){
-  const orders=state.orders||[];
-  const delayed=orders.filter(o=>classifyOrder(o)==='delayed');
-  const labels=orders.filter(o=>classifyOrder(o)==='labels');
-  const claims=(state.claims||[]).filter(c=>c.status==='opened'||c.status==='waiting_seller');
-
-  const actions=[];
-  if(delayed.length) actions.push({icon:'🚨',color:'a-red',title:`${delayed.length} envio${delayed.length>1?'s':''} atrasado${delayed.length>1?'s':''}`,desc:'Risco de penalização na reputação. Despache imediatamente.'});
-  if(labels.length) actions.push({icon:'🏷️',color:'a-orange',title:`${labels.length} etiqueta${labels.length>1?'s':''} para imprimir`,desc:'Pedidos prontos aguardando impressão e despacho.'});
-  if(claims.length) actions.push({icon:'⚖️',color:'a-purple',title:`${claims.length} reclamação${claims.length>1?'ões':''} aguardando resposta`,desc:'Responda em até 24h para evitar abertura automática de mediação.'});
-
-  document.getElementById('urgent-actions').innerHTML = actions.length
-    ? actions.map(a=>`<div class="alert-row ${a.color}"><div class="alert-icon">${a.icon}</div><div class="alert-body"><div class="alert-title">${a.title}</div><div class="alert-desc">${a.desc}</div></div></div>`).join('')
-    : '<div style="color:var(--green);font-size:13px">✅ Nenhuma ação urgente agora!</div>';
-}
-
 function renderDaySummary(){
   const orders=state.orders||[];
   const byHour={};
@@ -1109,33 +1073,7 @@ function renderDaySummary(){
       <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Total de pedidos</span><span class="mono" style="font-weight:600">${orders.length}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Horário de pico</span><span class="mono" style="font-weight:600">${peakHour?peakHour[0]+'h':'—'}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Taxa de cancelamento</span><span class="mono" style="font-weight:600;color:var(--red)">${orders.length?((orders.filter(o=>o.status==='cancelled').length/orders.length)*100).toFixed(1):0}%</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Devoluções / Pedidos</span><span class="mono" style="font-weight:600">${orders.length?(((state.returns||[]).length/orders.length)*100).toFixed(1):0}%</span></div>
     </div>`;
-}
-
-function renderReturnsClaims(){
-  const returns=state.returns||[];
-  const claims=state.claims||[];
-  document.getElementById('returns-detail-badge').textContent=returns.length;
-  document.getElementById('claims-detail-badge').textContent=claims.length;
-
-  document.getElementById('returns-list').innerHTML = returns.length ? returns.map(r=>`
-    <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:13px;font-weight:600">${r.buyer||r.reason||'Devolução #'+r.id}</div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${r.reason||''} · Pedido #${String(r.order_id||r.id).slice(-8)}</div>
-      </div>
-      <span class="badge ${r.status==='pending'?'b-orange':r.status==='shipped'?'b-blue':'b-green'}">${r.status==='pending'?'Pendente':r.status==='shipped'?'Em trânsito':'Entregue'}</span>
-    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--green);font-size:13px">✅ Sem devoluções abertas</div>';
-
-  document.getElementById('claims-list').innerHTML = claims.length ? claims.map(c=>`
-    <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-size:13px;font-weight:600">${c.buyer||'Reclamação #'+c.id}</div>
-        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${c.type||c.stage||''} · Pedido #${String(c.order_id||c.id).slice(-8)}</div>
-      </div>
-      <span class="badge ${c.status==='opened'?'b-red':c.status==='waiting_seller'?'b-orange':'b-blue'}">${c.status==='opened'?'Aberta':c.status==='waiting_seller'?'Aguarda você':'Em mediação'}</span>
-    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--green);font-size:13px">✅ Sem reclamações abertas</div>';
 }
 
 function renderHourChart(){
