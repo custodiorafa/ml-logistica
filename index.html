@@ -472,10 +472,14 @@ const state = {
 const LS_KEY='ml_logistics_creds_v1';
 const BASE='https://api.mercadolibre.com';
 const PROXIES=[
-  'https://corsproxy.io/?url=',          // gratuito ilimitado para domínios github.io — prioridade 1
-  'https://api.codetabs.com/v1/proxy/?quest=', // fallback estável, rate limit de 5/s
-  'https://api.allorigins.win/raw?url=', // último recurso — instável, rate limit 20/min
+  // corsproxy.io restringiu o tier gratuito para localhost — não funciona mais
+  // em produção (github.io), por isso foi REMOVIDO da lista (confirmado via testes reais).
+  'https://api.codetabs.com/v1/proxy/?quest=', // estável, rate limit de 5/s — prioridade 1
+  'https://api.allorigins.win/raw?url=',       // fallback — rate limit 20/min, instável às vezes
+  'https://corsproxy.io/?url=',                // último recurso — pode falhar fora de localhost
 ];
+
+const isCodetabs = (proxy) => proxy.includes('codetabs.com');
 
 function isLocal(){ return location.protocol==='file:'||location.hostname==='localhost'; }
 
@@ -781,7 +785,8 @@ async function startApp(){
         const offsets = [];
         for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
 
-        const BATCH_SIZE = 8;
+        // codetabs.com tem rate limit de 5 req/s — lote de 5 respeita esse limite
+        const BATCH_SIZE = 5;
         for(let i=0; i<offsets.length; i+=BATCH_SIZE){
           const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
           step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
@@ -799,7 +804,7 @@ async function startApp(){
           });
 
           if(gotEmpty){ console.log('[DEBUG] página vazia/parcial — parando paginação'); break; }
-          await new Promise(r=>setTimeout(r,120));
+          await new Promise(r=>setTimeout(r,1050)); // respeita rate limit de 5 req/s do codetabs
         }
       }
 
