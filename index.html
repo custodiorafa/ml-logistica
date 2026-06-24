@@ -354,7 +354,7 @@ table.t tr:last-child td { border-bottom:none; }
     <div class="panel-grid">
       <div class="card">
         <div class="card-head">
-          <span class="card-title" id="detail-panel-title">📋 Pedidos em Aberto — Todo o Histórico</span>
+          <span class="card-title" id="detail-panel-title">📋 Não Entregues — Últimos 7 Dias</span>
           <span class="badge b-blue" id="detail-count-badge">0 pedidos</span>
         </div>
         <div class="card-body" style="padding:0">
@@ -729,9 +729,11 @@ async function startApp(silent=false){
       // só o shipping.id (confirmado na documentação oficial do ML). Para saber se um pedido
       // está em handling, ready_to_ship, atrasado etc., é OBRIGATÓRIO consultar /shipments/{id}.
       //
-      // Estratégia: usamos a tag "not_delivered" (já filtra na própria query, sem custo extra)
-      // para reduzir drasticamente o volume ANTES de buscar o status real de cada um.
-      const openFrom = new Date(Date.now()-30*864e5).toISOString().slice(0,19)+'.000-03:00';
+      // Estratégia: este painel é para OPERAÇÃO DO DIA — etiquetas, atrasos, despachos.
+      // Pedidos de mais de 7 dias sem entrega já são caso grave/excepcional, não rotina diária.
+      // Reduzir a janela de 30→7 dias corta o volume drasticamente (de milhares para dezenas),
+      // tornando a consulta individual a /shipments/{id} rápida o suficiente para ser "quase tempo real".
+      const openFrom = new Date(Date.now()-7*864e5).toISOString().slice(0,19)+'.000-03:00';
       const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
       const PAGE_LIMIT = 50;
 
@@ -739,14 +741,14 @@ async function startApp(silent=false){
       const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&tags=not_delivered&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
 
       window.__debugFirstOpenPage = firstOpenPage;
-      console.log('[DEBUG] firstOpenPage (tags=not_delivered):', JSON.stringify(firstOpenPage)?.slice(0,500));
+      console.log('[DEBUG] firstOpenPage (tags=not_delivered, 7 dias):', JSON.stringify(firstOpenPage)?.slice(0,500));
 
       if(firstOpenPage){
         allOpenOrders=[...(firstOpenPage.results||[])];
         const rawTotal = firstOpenPage.paging?.total;
-        console.log('[DEBUG] rawTotal not_delivered (30 dias):', rawTotal);
+        console.log('[DEBUG] rawTotal not_delivered (7 dias):', rawTotal);
 
-        const SAFETY_CAP = 2000; // not_delivered já é um subconjunto bem menor que o total geral
+        const SAFETY_CAP = 500; // janela de 7 dias já é pequena por natureza
         const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
         const offsets = [];
         for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
@@ -754,7 +756,7 @@ async function startApp(silent=false){
         const BATCH_SIZE = 5;
         for(let i=0; i<offsets.length; i+=BATCH_SIZE){
           const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
-          step(`Buscando pedidos não entregues... ${allOpenOrders.length} já carregados de ~${total}`);
+          step(`Buscando pedidos não entregues (7 dias)... ${allOpenOrders.length} já carregados de ~${total}`);
 
           const results = await Promise.all(batchOffsets.map(off=>
             mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&tags=not_delivered&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
@@ -781,11 +783,10 @@ async function startApp(silent=false){
       });
 
       // ── Busca o status REAL de envio via /shipments/{id} — só para os não entregues ──
-      // Isso é obrigatório porque /orders/search nunca traz status/substatus de envio.
-      // Limitamos a 500 mais recentes para manter o carregamento rápido mesmo com alto volume.
+      // Com a janela de 7 dias, o volume já costuma ser pequeno (dezenas), então consultamos
+      // todos sem necessidade de cortar em 500 como antes — fica rápido por natureza do filtro.
       const toCheck = [...openOrders]
         .sort((a,b)=>new Date(b.date_created)-new Date(a.date_created))
-        .slice(0,500)
         .filter(o=>o.shipping?.id);
 
       step(`Consultando status de envio de ${toCheck.length} pedidos...`);
@@ -874,7 +875,7 @@ function updateClock(){ document.getElementById('live-clock').textContent=new Da
 
 // ── AUTO-SYNC: re-busca os dados da API periodicamente, sem precisar de F5 ──
 let autoSyncInterval=null;
-const AUTO_SYNC_MS = 3*60*1000; // 3 minutos
+const AUTO_SYNC_MS = 90*1000; // 1.5 minutos — viável agora que a janela de busca é só 7 dias
 
 function startAutoSync(){
   if(autoSyncInterval) clearInterval(autoSyncInterval);
