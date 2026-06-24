@@ -725,38 +725,39 @@ async function startApp(silent=false){
 
     // ── Função: busca pedidos ABERTOS últimos 30 dias (alimenta Status/Atrasadas/Formas de Entrega) ──
     async function fetchOpenOrders(){
-      // A API rejeita (erro 400) janelas de data muito longas — 30 dias é seguro e cobre
-      // qualquer pedido realmente "em aberto" (nenhum fica handling/ready_to_ship por meses).
+      // DESCOBERTA IMPORTANTE: /orders/search NUNCA retorna shipping.status/substatus —
+      // só o shipping.id (confirmado na documentação oficial do ML). Para saber se um pedido
+      // está em handling, ready_to_ship, atrasado etc., é OBRIGATÓRIO consultar /shipments/{id}.
+      //
+      // Estratégia: usamos a tag "not_delivered" (já filtra na própria query, sem custo extra)
+      // para reduzir drasticamente o volume ANTES de buscar o status real de cada um.
       const openFrom = new Date(Date.now()-30*864e5).toISOString().slice(0,19)+'.000-03:00';
       const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
-      // IMPORTANTE: a API documenta limit máximo de 50 para /orders/search — usar valor
-      // maior causa erro 400 Bad Request (testado e confirmado).
       const PAGE_LIMIT = 50;
 
       let allOpenOrders=[];
-      const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
+      const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&tags=not_delivered&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
 
       window.__debugFirstOpenPage = firstOpenPage;
-      console.log('[DEBUG] firstOpenPage completo:', JSON.stringify(firstOpenPage)?.slice(0,500));
+      console.log('[DEBUG] firstOpenPage (tags=not_delivered):', JSON.stringify(firstOpenPage)?.slice(0,500));
 
       if(firstOpenPage){
         allOpenOrders=[...(firstOpenPage.results||[])];
         const rawTotal = firstOpenPage.paging?.total;
-        console.log('[DEBUG] rawTotal da API (30 dias):', rawTotal);
+        console.log('[DEBUG] rawTotal not_delivered (30 dias):', rawTotal);
 
-        const SAFETY_CAP = 10000;
+        const SAFETY_CAP = 2000; // not_delivered já é um subconjunto bem menor que o total geral
         const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
         const offsets = [];
         for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
 
-        // codetabs.com tem rate limit de 5 req/s — lote de 5 respeita esse limite
         const BATCH_SIZE = 5;
         for(let i=0; i<offsets.length; i+=BATCH_SIZE){
           const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
-          step(`Buscando pedidos abertos... ${allOpenOrders.length} já carregados de ~${total}`);
+          step(`Buscando pedidos não entregues... ${allOpenOrders.length} já carregados de ~${total}`);
 
           const results = await Promise.all(batchOffsets.map(off=>
-            mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
+            mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&tags=not_delivered&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
           ));
 
           let gotEmpty=false;
@@ -767,8 +768,8 @@ async function startApp(silent=false){
             }
           });
 
-          if(gotEmpty){ console.log('[DEBUG] página vazia/parcial — parando paginação'); break; }
-          await new Promise(r=>setTimeout(r,1050)); // respeita rate limit de 5 req/s do codetabs
+          if(gotEmpty) break;
+          await new Promise(r=>setTimeout(r,1050));
         }
       }
 
@@ -776,9 +777,32 @@ async function startApp(silent=false){
       const openOrders = allOpenOrders.filter(o=>{
         if(seenIds.has(o.id)) return false;
         seenIds.add(o.id);
-        const sh=o.shipping||{};
-        return sh.status!=='delivered' && o.status!=='cancelled';
+        return o.status!=='cancelled';
       });
+
+      // ── Busca o status REAL de envio via /shipments/{id} — só para os não entregues ──
+      // Isso é obrigatório porque /orders/search nunca traz status/substatus de envio.
+      // Limitamos a 500 mais recentes para manter o carregamento rápido mesmo com alto volume.
+      const toCheck = [...openOrders]
+        .sort((a,b)=>new Date(b.date_created)-new Date(a.date_created))
+        .slice(0,500)
+        .filter(o=>o.shipping?.id);
+
+      step(`Consultando status de envio de ${toCheck.length} pedidos...`);
+      for(let i=0;i<toCheck.length;i+=5){
+        const batch = toCheck.slice(i,i+5);
+        step(`Status de envio... ${i+batch.length}/${toCheck.length}`);
+        const group = await Promise.all(batch.map(o=>
+          mlGet(`/shipments/${o.shipping.id}`).then(sh=>({orderId:o.id, shipment:sh}))
+        ));
+        group.forEach(({orderId, shipment})=>{
+          const target = openOrders.find(o=>o.id===orderId);
+          if(target && shipment){
+            target.shipping = { ...target.shipping, status: shipment.status, substatus: shipment.substatus, logistic_type: shipment.logistic_type };
+          }
+        });
+        await new Promise(r=>setTimeout(r,1050)); // respeita rate limit de 5 req/s
+      }
 
       const statusCounts={};
       openOrders.forEach(o=>{ const s=o.shipping?.status||'sem_status'; statusCounts[s]=(statusCounts[s]||0)+1; });
@@ -789,6 +813,7 @@ async function startApp(silent=false){
         rawResultsLen: firstOpenPage?.results?.length,
         allOpenBeforeDedup: allOpenOrders.length,
         openAfterDedup: openOrders.length,
+        statusChecked: toCheck.length,
         statusCounts,
         sampleOrder: openOrders[0] ? { id: openOrders[0].id, status: openOrders[0].status, shipping: openOrders[0].shipping } : null,
       };
@@ -902,10 +927,11 @@ function renderDebugPanel(){
   if(!d){ el.textContent='Sem dados de diagnóstico ainda.'; return; }
   el.innerHTML = `
 firstOpenPage recebido: <span style="color:${d.firstOpenPageOk?'var(--green)':'var(--red)'}">${d.firstOpenPageOk}</span>
-paging.total (API):     <span style="color:var(--yellow)">${d.rawTotal}</span>
+paging.total (not_delivered): <span style="color:var(--yellow)">${d.rawTotal}</span>
 results na 1ª página:   ${d.rawResultsLen}
 total antes dedupe:     ${d.allOpenBeforeDedup}
 total DEPOIS dedupe:    <span style="color:var(--accent)">${d.openAfterDedup}</span>
+status de envio verificados: <span style="color:var(--green)">${d.statusChecked}</span>
 
 Contagem por shipping.status:
 ${Object.entries(d.statusCounts||{}).map(([k,v])=>`  ${k}: ${v}`).join('\n')||'  (vazio)'}
