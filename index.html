@@ -27,7 +27,6 @@
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; }
-
 body::before {
   content:''; position:fixed; inset:0;
   background-image:
@@ -36,8 +35,6 @@ body::before {
   pointer-events:none; z-index:0;
 }
 .wrap { position:relative; z-index:1; }
-
-/* ─── AUTH ─── */
 #auth-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px; }
 .auth-box { width:100%; max-width:480px; background:var(--surface); border:1px solid var(--border2); border-radius:20px; padding:40px; text-align:center; }
 .auth-logo { display:inline-flex; align-items:center; gap:10px; margin-bottom:28px; }
@@ -56,17 +53,12 @@ body::before {
 .btn-demo { width:100%; padding:11px; background:transparent; border:1px solid var(--border2); color:var(--text2); font-weight:600; font-size:13px; border-radius:12px; cursor:pointer; transition:all 0.2s; }
 .btn-demo:hover { border-color:var(--green); color:var(--green); }
 .auth-note { margin-top:18px; font-size:11px; color:var(--muted); line-height:1.6; font-family:var(--mono); text-align:left; }
-
-/* ─── LOADING ─── */
 #loading-screen { display:none; align-items:center; justify-content:center; min-height:100vh; flex-direction:column; gap:20px; }
 .loader { width:44px; height:44px; border:3px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
 .loading-text { font-family:var(--mono); font-size:13px; color:var(--text2); }
 .loading-step { font-size:12px; color:var(--muted); font-family:var(--mono); }
-
-/* ─── APP ─── */
 #app { display:none; }
-
 .topbar { display:flex; align-items:center; justify-content:space-between; padding:16px 28px; background:rgba(6,10,15,0.92); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
 .topbar-left { display:flex; align-items:center; gap:14px; }
 .logo-mark { width:36px; height:36px; background:linear-gradient(135deg,var(--accent),var(--purple)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
@@ -81,10 +73,7 @@ body::before {
 .btn-refresh:hover { opacity:0.85; }
 .btn-logout { background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px 12px; border-radius:8px; font-size:12px; cursor:pointer; transition:all 0.15s; }
 .btn-logout:hover { border-color:var(--red); color:var(--red); }
-
 main { padding:28px; max-width:1500px; margin:0 auto; }
-
-/* ─── HERO STATS ─── */
 .hero-row { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:18px; margin-bottom:24px; }
 .hero-card { background:var(--surface); border:1px solid var(--border2); border-radius:18px; padding:26px; position:relative; overflow:hidden; }
 .hero-card.revenue { background:linear-gradient(135deg, rgba(0,229,160,0.08), rgba(11,16,24,1)); border-color:rgba(0,229,160,0.25); }
@@ -96,8 +85,6 @@ main { padding:28px; max-width:1500px; margin:0 auto; }
 .hero-sub-item { flex:1; }
 .hero-sub-label { font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; }
 .hero-sub-val { font-size:20px; font-weight:700; margin-top:4px; }
-
-/* ─── STATUS GRID ─── */
 .status-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
 .status-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; position:relative; cursor:pointer; transition:all 0.2s; overflow:hidden; }
 .status-card:hover { transform:translateY(-3px); border-color:var(--card-color); }
@@ -106,83 +93,41 @@ main { padding:28px; max-width:1500px; margin:0 auto; }
 .status-label { font-size:11px; font-family:var(--mono); color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; line-height:1.3; }
 .status-value { font-size:34px; font-weight:700; letter-spacing:-1px; }
 .status-flag { margin-top:8px; font-size:11px; font-family:var(--mono); padding:3px 8px; border-radius:6px; display:inline-block; }
-
-/* ─── SECONDARY ─── */
-.secondary-row { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px; }
-.secondary-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px; }
-.secondary-card.danger { border-color:rgba(255,59,92,0.25); background:linear-gradient(135deg, rgba(255,59,92,0.04), var(--surface)); }
-.secondary-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-.secondary-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
-.secondary-count { font-size:36px; font-weight:700; }
-
-/* ─── PANELS ─── */
 .panel-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; margin-bottom:18px; }
 .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
 .card-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
 .card-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); display:flex; align-items:center; gap:8px; }
 .card-body { padding:18px 20px; }
-
 table.t { width:100%; border-collapse:collapse; }
 table.t th { padding:10px 14px; text-align:left; font-size:10px; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.7px; color:var(--muted); border-bottom:1px solid var(--border); }
 table.t td { padding:12px 14px; font-size:13px; border-bottom:1px solid rgba(99,179,237,0.04); }
 table.t tr:hover td { background:rgba(52,131,250,0.04); }
 table.t tr:last-child td { border-bottom:none; }
 .mono { font-family:var(--mono); }
-
 .badge { padding:3px 10px; border-radius:99px; font-size:10px; font-family:var(--mono); font-weight:600; letter-spacing:0.3px; white-space:nowrap; }
 .b-red { background:rgba(255,59,92,0.14); color:var(--red); }
 .b-orange { background:rgba(255,159,28,0.14); color:var(--orange); }
-.b-yellow { background:rgba(255,210,63,0.14); color:var(--yellow); }
 .b-green { background:rgba(0,229,160,0.14); color:var(--green); }
 .b-blue { background:rgba(52,131,250,0.14); color:var(--accent); }
-.b-purple { background:rgba(177,138,255,0.14); color:var(--purple); }
 .b-gray { background:rgba(139,155,176,0.12); color:var(--text2); }
-
-.alert-row { display:flex; align-items:flex-start; gap:12px; padding:13px 16px; border-radius:12px; margin-bottom:9px; border:1px solid; transition:transform 0.15s; }
-.alert-row:hover { transform:translateX(3px); }
-.a-red { background:rgba(255,59,92,0.05); border-color:rgba(255,59,92,0.2); }
-.a-orange { background:rgba(255,159,28,0.05); border-color:rgba(255,159,28,0.2); }
-.a-purple { background:rgba(177,138,255,0.05); border-color:rgba(177,138,255,0.2); }
-.alert-icon { font-size:17px; flex-shrink:0; margin-top:1px; }
-.alert-body { flex:1; min-width:0; }
-.alert-title { font-size:13px; font-weight:700; margin-bottom:2px; }
-.alert-desc { font-size:12px; color:var(--text2); line-height:1.5; }
-
-.hour-bars { display:flex; align-items:flex-end; gap:3px; height:80px; margin-top:8px; }
-.hour-bar { flex:1; background:var(--accent); border-radius:3px 3px 0 0; min-height:3px; transition:height 1s ease; position:relative; }
-.hour-bar:hover::after { content:attr(data-val); position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:10px; font-family:var(--mono); color:var(--text); white-space:nowrap; }
-
 .scroll { max-height:420px; overflow-y:auto; }
 .scroll::-webkit-scrollbar { width:4px; }
 .scroll::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
-
 .btn-sm { padding:6px 14px; border-radius:8px; font-size:11px; font-weight:700; border:none; cursor:pointer; font-family:var(--sans); transition:all 0.15s; }
 .btn-primary { background:var(--accent); color:#fff; }
 .btn-primary:hover { opacity:0.85; }
-
 .priority-ring { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; flex-shrink:0; }
-
+.hour-bars { display:flex; align-items:flex-end; gap:3px; height:80px; margin-top:8px; }
+.hour-bar { flex:1; background:var(--accent); border-radius:3px 3px 0 0; min-height:3px; transition:height 1s ease; position:relative; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-.hero-card,.status-card,.secondary-card,.card,.alert-row { animation:fadeUp 0.35s ease both; }
-
-@media(max-width:1200px){
-  .hero-row { grid-template-columns:1fr; }
-  .status-grid { grid-template-columns:repeat(3,1fr); }
-  .panel-grid { grid-template-columns:1fr; }
-}
-@media(max-width:720px){
-  main{padding:16px}
-  .topbar{padding:12px 16px}
-  .status-grid{grid-template-columns:repeat(2,1fr)}
-  .secondary-row{grid-template-columns:1fr}
-}
-
+.hero-card,.status-card,.card { animation:fadeUp 0.35s ease both; }
+@media(max-width:1200px){ .hero-row{grid-template-columns:1fr} .status-grid{grid-template-columns:repeat(3,1fr)} .panel-grid{grid-template-columns:1fr} }
+@media(max-width:720px){ main{padding:16px} .topbar{padding:12px 16px} .status-grid{grid-template-columns:repeat(2,1fr)} }
 #token-bar-wrap { position:fixed; bottom:0; left:0; right:0; z-index:200; background:var(--surface); border-top:1px solid var(--border); padding:7px 28px; display:none; align-items:center; gap:16px; }
 #token-bar-wrap.visible { display:flex; }
 #token-bar-track { flex:1; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; }
 #token-bar-fill { height:100%; border-radius:2px; transition:width 1s linear, background 1s; background:var(--green); }
 #token-bar-label { font-size:11px; font-family:var(--mono); color:var(--text2); white-space:nowrap; }
-
 .toast { position:fixed; bottom:50px; right:24px; z-index:300; padding:12px 18px; border-radius:12px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px; box-shadow:0 8px 32px rgba(0,0,0,0.4); animation:toastIn 0.3s ease both; max-width:340px; }
 .toast-ok { background:rgba(0,229,160,0.12); border:1px solid rgba(0,229,160,0.3); color:var(--green); }
 .toast-err { background:rgba(255,59,92,0.12); border:1px solid rgba(255,59,92,0.3); color:var(--red); }
@@ -200,7 +145,6 @@ table.t tr:last-child td { border-bottom:none; }
     </div>
     <div class="auth-title">Operações Logísticas</div>
     <div class="auth-sub">Conecte sua conta do Mercado Livre para monitorar pedidos, envios, devoluções e reclamações em tempo real.</div>
-
     <div class="input-group"><label>Access Token</label><input type="password" id="inp-token" placeholder="APP_USR-..."></div>
     <div class="input-group"><label>Refresh Token</label><input type="password" id="inp-refresh" placeholder="TG-..."></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -211,19 +155,17 @@ table.t tr:last-child td { border-bottom:none; }
       <div class="input-group"><label>Seller ID</label><input type="text" id="inp-seller" placeholder="123456789"></div>
       <div class="input-group"><label>Site</label>
         <select id="inp-site">
-          <option value="MLB">🇧🇷 Brasil</option>
-          <option value="MLA">🇦🇷 Argentina</option>
-          <option value="MLM">🇲🇽 México</option>
+          <option value="MLB">Brasil</option>
+          <option value="MLA">Argentina</option>
+          <option value="MLM">México</option>
         </select>
       </div>
     </div>
-
-    <button class="btn-auth" onclick="doLogin()">🔐 Conectar Conta</button>
+    <button class="btn-auth" onclick="doLogin()">Conectar Conta</button>
     <div class="auth-divider">ou</div>
-    <button class="btn-demo" onclick="loadDemo()">⚡ Dados Demo</button>
-
+    <button class="btn-demo" onclick="loadDemo()">Dados Demo</button>
     <div class="auth-note" id="auth-error-hint" style="display:none;color:var(--red);background:rgba(255,59,92,0.06);border:1px solid rgba(255,59,92,0.2);border-radius:10px;padding:12px 14px;margin-top:14px">
-      ⚠️ Não foi possível conectar. Verifique o token, o Seller ID, e se as permissões de Vendas/Envios/Reclamações estão ativadas no app.
+      Não foi possível conectar. Verifique o token, o Seller ID, e se as permissões de Vendas/Envios/Reclamações estão ativadas no app.
     </div>
   </div>
 </div>
@@ -234,15 +176,17 @@ table.t tr:last-child td { border-bottom:none; }
   <div class="loading-step" id="loading-step">Conectando à API...</div>
   <div style="margin-top:18px;font-size:11px;color:var(--muted);font-family:var(--mono)" id="loading-elapsed">0s</div>
   <div style="margin-top:24px;max-width:380px;text-align:center;background:rgba(255,159,28,0.08);border:1px solid rgba(255,159,28,0.25);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--orange);line-height:1.6">
-    ⚠️ <strong>Não recarregue a página.</strong><br>
-    Com grande volume de pedidos, esse processo pode levar 1-2 minutos. Recarregar agora reinicia tudo do zero.
+    Não recarregue a página. Com grande volume de pedidos, esse processo pode levar 1-2 minutos.
   </div>
+  <button id="loading-bailout-btn" onclick="bailOutOfLoading()" style="display:none;margin-top:16px;background:transparent;border:1px solid var(--border2);color:var(--text2);padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--sans)">
+    Está demorando demais — ver dados parciais
+  </button>
 </div>
 
 <div id="token-bar-wrap">
   <div id="token-bar-label">Token expira em —</div>
   <div id="token-bar-track"><div id="token-bar-fill" style="width:100%"></div></div>
-  <button class="btn-sm btn-primary" onclick="manualRefresh()">🔄 Renovar</button>
+  <button class="btn-sm btn-primary" onclick="manualRefresh()">Renovar</button>
 </div>
 <div id="toast-container"></div>
 
@@ -259,7 +203,7 @@ table.t tr:last-child td { border-bottom:none; }
       <div class="live-pill"><div class="live-dot"></div> LIVE</div>
       <div class="clock-display" id="live-clock">--:--:--</div>
       <div style="font-size:10px;color:var(--muted);font-family:var(--mono)" id="last-sync-label">sync: —</div>
-      <button class="btn-refresh" onclick="refreshAll()">↻ Atualizar</button>
+      <button class="btn-refresh" onclick="refreshAll()">Atualizar</button>
       <button class="btn-logout" onclick="logout()">Sair</button>
     </div>
   </div>
@@ -267,29 +211,21 @@ table.t tr:last-child td { border-bottom:none; }
   <main>
     <div class="hero-row">
       <div class="hero-card revenue">
-        <div class="hero-label">💰 Faturamento de Hoje</div>
+        <div class="hero-label">Faturamento de Hoje</div>
         <div class="hero-value money" id="hero-revenue">R$ —</div>
         <div class="hero-delta" id="hero-revenue-delta"><span style="color:var(--muted)">calculando...</span></div>
         <div class="hero-sub-row">
-          <div class="hero-sub-item">
-            <div class="hero-sub-label">Ticket Médio</div>
-            <div class="hero-sub-val" id="hero-avg-ticket">—</div>
-          </div>
-          <div class="hero-sub-item">
-            <div class="hero-sub-label">Pedidos Pagos</div>
-            <div class="hero-sub-val" id="hero-paid-count">—</div>
-          </div>
+          <div class="hero-sub-item"><div class="hero-sub-label">Ticket Médio</div><div class="hero-sub-val" id="hero-avg-ticket">—</div></div>
+          <div class="hero-sub-item"><div class="hero-sub-label">Pedidos Pagos</div><div class="hero-sub-val" id="hero-paid-count">—</div></div>
         </div>
       </div>
-
       <div class="hero-card">
-        <div class="hero-label">📦 Pedidos de Hoje</div>
+        <div class="hero-label">Pedidos de Hoje</div>
         <div class="hero-value" id="hero-orders-today">—</div>
         <div class="hero-delta" id="hero-orders-delta"><span style="color:var(--muted)">total do dia</span></div>
       </div>
-
       <div class="hero-card">
-        <div class="hero-label">⏱ Distribuição por Hora</div>
+        <div class="hero-label">Distribuição por Hora</div>
         <div class="hour-bars" id="hour-chart"></div>
         <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:4px">
           <span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span>
@@ -298,52 +234,28 @@ table.t tr:last-child td { border-bottom:none; }
     </div>
 
     <div class="status-grid">
-      <div class="status-card" style="--card-color:#3483fa">
-        <span class="status-icon">🏷️</span>
-        <div class="status-label">Etiquetas p/ Imprimir</div>
-        <div class="status-value" id="st-labels">—</div>
-        <span class="status-flag b-blue" id="st-labels-flag">aguardando</span>
-      </div>
-      <div class="status-card" style="--card-color:#ff3b5c">
-        <span class="status-icon">⏰</span>
-        <div class="status-label">Atrasadas</div>
-        <div class="status-value" id="st-delayed">—</div>
-        <span class="status-flag b-red" id="st-delayed-flag">aguardando</span>
-      </div>
-      <div class="status-card" style="--card-color:#00e5a0">
-        <span class="status-icon">✅</span>
-        <div class="status-label">Prontas p/ Enviar</div>
-        <div class="status-value" id="st-ready">—</div>
-        <span class="status-flag b-green" id="st-ready-flag">aguardando</span>
-      </div>
-      <div class="status-card" style="--card-color:#8b9bb0">
-        <span class="status-icon">🚫</span>
-        <div class="status-label">Canceladas</div>
-        <div class="status-value" id="st-cancelled">—</div>
-        <span class="status-flag b-gray" id="st-cancelled-flag">aguardando</span>
-      </div>
+      <div class="status-card" style="--card-color:#3483fa"><span class="status-icon">🏷️</span><div class="status-label">Etiquetas p/ Imprimir</div><div class="status-value" id="st-labels">—</div><span class="status-flag b-blue" id="st-labels-flag">aguardando</span></div>
+      <div class="status-card" style="--card-color:#ff3b5c"><span class="status-icon">⏰</span><div class="status-label">Atrasadas</div><div class="status-value" id="st-delayed">—</div><span class="status-flag b-red" id="st-delayed-flag">aguardando</span></div>
+      <div class="status-card" style="--card-color:#00e5a0"><span class="status-icon">✅</span><div class="status-label">Prontas p/ Enviar</div><div class="status-value" id="st-ready">—</div><span class="status-flag b-green" id="st-ready-flag">aguardando</span></div>
+      <div class="status-card" style="--card-color:#8b9bb0"><span class="status-icon">🚫</span><div class="status-label">Canceladas</div><div class="status-value" id="st-cancelled">—</div><span class="status-flag b-gray" id="st-cancelled-flag">aguardando</span></div>
     </div>
 
-    <!-- Formas de Entrega -->
     <div class="card" style="margin-bottom:24px">
-      <div class="card-head">
-        <span class="card-title">🚚 Formas de Entrega — Pedidos de Hoje</span>
-        <span class="badge b-blue" id="shipping-total-badge">0 pedidos</span>
-      </div>
+      <div class="card-head"><span class="card-title">Formas de Entrega — Pedidos de Hoje</span><span class="badge b-blue" id="shipping-total-badge">0 pedidos</span></div>
       <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
           <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
-            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">⚡ Envios Flex</div>
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Envios Flex</div>
             <div style="font-size:28px;font-weight:700" id="ship-flex-count">—</div>
             <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-flex-detail">aguardando...</div>
           </div>
           <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
-            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">🏢 Agências ML</div>
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Agências ML</div>
             <div style="font-size:28px;font-weight:700" id="ship-agency-count">—</div>
             <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-agency-detail">aguardando...</div>
           </div>
           <div style="background:var(--surface2);border-radius:12px;padding:18px;border:1px solid var(--border)">
-            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">📦 Mercado Envios Full</div>
+            <div style="font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Mercado Envios Full</div>
             <div style="font-size:28px;font-weight:700" id="ship-full-count">—</div>
             <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ship-full-detail">aguardando...</div>
           </div>
@@ -353,33 +265,23 @@ table.t tr:last-child td { border-bottom:none; }
 
     <div class="panel-grid">
       <div class="card">
-        <div class="card-head">
-          <span class="card-title" id="detail-panel-title">📋 Não Entregues — Últimos 7 Dias</span>
-          <span class="badge b-blue" id="detail-count-badge">0 pedidos</span>
-        </div>
+        <div class="card-head"><span class="card-title" id="detail-panel-title">Não Entregues — Últimos 7 Dias</span><span class="badge b-blue" id="detail-count-badge">0 pedidos</span></div>
         <div class="card-body" style="padding:0">
           <div class="scroll">
             <table class="t" id="orders-table">
-              <thead>
-                <tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Sub-status</th><th>Prioridade</th></tr>
-              </thead>
-              <tbody id="orders-tbody">
-                <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Carregando pedidos...</td></tr>
-              </tbody>
+              <thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status</th><th>Sub-status</th><th>Prioridade</th></tr></thead>
+              <tbody id="orders-tbody"><tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Carregando pedidos...</td></tr></tbody>
             </table>
           </div>
         </div>
       </div>
-
       <div>
         <div class="card">
-          <div class="card-head"><span class="card-title">📊 Resumo do Dia</span></div>
-          <div class="card-body" id="day-summary">
-            <div style="color:var(--muted);font-size:13px">Carregando...</div>
-          </div>
+          <div class="card-head"><span class="card-title">Resumo do Dia</span></div>
+          <div class="card-body" id="day-summary"><div style="color:var(--muted);font-size:13px">Carregando...</div></div>
         </div>
         <div class="card" style="margin-top:18px;border-color:rgba(255,159,28,0.3)">
-          <div class="card-head"><span class="card-title">🔍 Diagnóstico (temporário)</span></div>
+          <div class="card-head"><span class="card-title">Diagnóstico (temporário)</span></div>
           <div class="card-body" id="debug-panel" style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8;white-space:pre-wrap">Carregando...</div>
         </div>
       </div>
@@ -387,31 +289,23 @@ table.t tr:last-child td { border-bottom:none; }
 
     <div class="panel-grid">
       <div class="card">
-        <div class="card-head">
-          <span class="card-title">📦 Produtos Vendidos Hoje</span>
-          <span class="badge b-green" id="products-today-badge">0 itens</span>
-        </div>
+        <div class="card-head"><span class="card-title">Produtos Vendidos Hoje</span><span class="badge b-green" id="products-today-badge">0 itens</span></div>
         <div class="card-body" style="padding:0">
           <div class="scroll">
             <table class="t">
               <thead><tr><th>Produto</th><th>Qtd</th><th>Receita</th><th>Pedidos</th></tr></thead>
-              <tbody id="products-today-tbody">
-                <tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Carregando...</td></tr>
-              </tbody>
+              <tbody id="products-today-tbody"><tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Carregando...</td></tr></tbody>
             </table>
           </div>
         </div>
       </div>
       <div class="card">
-        <div class="card-head"><span class="card-title">🏆 Top 5 Mais Vendidos Hoje</span></div>
-        <div class="card-body" id="top-products-bars">
-          <div style="color:var(--muted);font-size:13px">Carregando...</div>
-        </div>
+        <div class="card-head"><span class="card-title">Top 5 Mais Vendidos Hoje</span></div>
+        <div class="card-body" id="top-products-bars"><div style="color:var(--muted);font-size:13px">Carregando...</div></div>
       </div>
     </div>
   </main>
 </div>
-
 </div>
 
 <script>
@@ -423,15 +317,9 @@ const state = {
 };
 const LS_KEY='ml_logistics_creds_v1';
 const BASE='https://api.mercadolibre.com';
-const PROXIES=[
-  // corsproxy.io restringiu o tier gratuito para localhost — não funciona mais
-  // em produção (github.io), por isso foi REMOVIDO da lista (confirmado via testes reais).
-  'https://api.codetabs.com/v1/proxy/?quest=', // estável, rate limit de 5/s — prioridade 1
-  'https://api.allorigins.win/raw?url=',       // fallback — rate limit 20/min, instável às vezes
-  'https://corsproxy.io/?url=',                // último recurso — pode falhar fora de localhost
-];
 
-const isCodetabs = (proxy) => proxy.includes('codetabs.com');
+/* PROXY — Cloudflare Worker dedicado. Troque pela URL real após o deploy. */
+const WORKER_URL = 'https://ml-proxy.SEUUSUARIO.workers.dev';
 
 function isLocal(){ return location.protocol==='file:'||location.hostname==='localhost'; }
 
@@ -443,28 +331,15 @@ async function fetchWithTimeout(url,opts={},ms=12000){
 
 async function mlFetch(path,opts={}){
   const full=`${BASE}${path}`;
-  let lastError=null;
-
-  // GitHub Pages é servido via HTTPS, mas a API do ML ainda bloqueia CORS
-  // em browser puro (sem backend). Por isso SEMPRE tentamos os proxies em sequência,
-  // independente de ser local ou não — a tentativa direta serve só como atalho rápido.
-  if(!isLocal()){
+  if(isLocal()){
     try{
       const r=await fetchWithTimeout(full,opts,8000);
       if(r.ok||r.status===401||r.status===404) return r;
-    }catch(e){ lastError=e; }
+    }catch(e){}
   }
-
-  for(const proxy of PROXIES){
-    // Todos os proxies atuais usam a URL como parâmetro de query — sempre precisa encodar
-    const url=`${proxy}${encodeURIComponent(full)}`;
-    try{
-      const r=await fetchWithTimeout(url,opts,20000);
-      if(r.status<500) return r;
-      lastError=new Error(`proxy ${proxy} retornou ${r.status}`);
-    }catch(e){ lastError=e; console.warn('[mlFetch] proxy falhou:',proxy,e.message); }
-  }
-  throw lastError||new Error('Todos os proxies falharam');
+  const proxyUrl = `${WORKER_URL}/?path=${encodeURIComponent(path)}`;
+  const r=await fetchWithTimeout(proxyUrl,opts,12000);
+  return r;
 }
 
 async function mlGet(path,retried=false){
@@ -472,7 +347,7 @@ async function mlGet(path,retried=false){
   try{
     const r=await mlFetch(path,{headers:{'Authorization':`Bearer ${state.token}`}});
     if(r.status===401&&!retried&&state.refreshToken){ const ok=await doRefreshToken(); if(ok) return mlGet(path,true); return null; }
-    if(r.status===404) return null; // ex: /delays sem atraso
+    if(r.status===404) return null;
     if(!r.ok){ console.warn('[mlGet] status não-ok:',r.status,path); return null; }
     return r.json();
   }catch(e){ console.error('[mlGet] falhou:',path,e.message); return null; }
@@ -548,7 +423,7 @@ function updateTokenUI(){
   const msLeft=state.tokenExpiresAt-Date.now();
   const pct=Math.max(0,Math.min(100,msLeft/(21600*1000)*100));
   const h=Math.floor(msLeft/3600000), m=Math.floor((msLeft%3600000)/60000);
-  document.getElementById('token-bar-label').textContent=msLeft<=0?'⚠️ Token expirado':`Token expira em ${h}h${String(m).padStart(2,'0')}`;
+  document.getElementById('token-bar-label').textContent=msLeft<=0?'Token expirado':`Token expira em ${h}h${String(m).padStart(2,'0')}`;
   document.getElementById('token-bar-fill').style.width=pct+'%';
   document.getElementById('token-bar-fill').style.background=pct>30?'var(--green)':pct>10?'var(--orange)':'var(--red)';
 }
@@ -557,7 +432,7 @@ function manualRefresh(){ doRefreshToken(); }
 let _toastTimer=null;
 function showToast(msg,type='ok'){
   const c=document.getElementById('toast-container');
-  c.innerHTML=`<div class="toast ${type==='ok'?'toast-ok':'toast-err'}">${type==='ok'?'✅':'❌'} <span>${msg}</span></div>`;
+  c.innerHTML=`<div class="toast ${type==='ok'?'toast-ok':'toast-err'}">${type==='ok'?'OK':'Erro'} <span>${msg}</span></div>`;
   if(_toastTimer) clearTimeout(_toastTimer);
   _toastTimer=setTimeout(()=>{c.innerHTML='';},4000);
 }
@@ -565,15 +440,14 @@ function showToast(msg,type='ok'){
 function demoOrders(){
   const statuses=['handling','ready_to_ship','shipped','delivered','cancelled'];
   const subs={handling:['waiting_for_label_generation',null],ready_to_ship:['printed','ready_to_print'],shipped:[null],delivered:[null],cancelled:[null]};
-  const logisticTypes=['self_service','cross_docking','fulfillment']; // Flex, Agências(cross_docking=me2), Full
+  const logisticTypes=['self_service','cross_docking','fulfillment'];
   const names=['Maria Silva','João Pereira','Ana Costa','Carlos Souza','Beatriz Lima','Pedro Alves','Juliana Rocha','Rafael Santos','Fernanda Dias','Lucas Martins'];
   const products=['Fita Dupla Face 3M 12mm','Câmara de Ar Moto Aro 18','Pino Bico Graxeiro Lubrificação','Fita Isolante Anti Chama 19x10','Regulador Pressão Wabco','Lubrificante Pasta Mole 3kg'];
   const now=Date.now();
-  // 15 atrasadas propositalmente, resto distribuído
   return Array.from({length:68},(_,i)=>{
     const isDelayed = i<15;
     const st = isDelayed ? 'handling' : statuses[Math.floor(Math.random()*statuses.length)];
-    const daysAgo = isDelayed ? (1+Math.random()*4) : Math.random()*3; // atrasadas são mais antigas
+    const daysAgo = isDelayed ? (1+Math.random()*4) : Math.random()*3;
     return {
       id:9000000000+i,
       status: st==='cancelled'?'cancelled':'paid',
@@ -581,35 +455,10 @@ function demoOrders(){
       total_amount: 45+Math.random()*380,
       buyer:{nickname:names[i%names.length]},
       product_title: products[i%products.length],
-      shipping:{
-        id:8000000000+i, status:st,
-        substatus:subs[st]?subs[st][Math.floor(Math.random()*subs[st].length)]:null,
-        logistic_type: logisticTypes[i%logisticTypes.length],
-      },
+      shipping:{ id:8000000000+i, status:st, substatus:subs[st]?subs[st][Math.floor(Math.random()*subs[st].length)]:null, logistic_type: logisticTypes[i%logisticTypes.length] },
       delayed: isDelayed,
     };
   });
-}
-function demoReturns(){
-  return Array.from({length:7},(_,i)=>({
-    id:7000000+i,
-    order_id:9000000000+i,
-    reason:['Produto com defeito','Não gostou do produto','Produto diferente do anunciado','Arrependimento de compra','Produto incompleto'][i%5],
-    status:['pending','shipped','delivered'][i%3],
-    buyer:'Cliente '+(i+1),
-    amount: 60+Math.random()*200,
-  }));
-}
-function demoClaims(){
-  return Array.from({length:5},(_,i)=>({
-    id:5000000+i,
-    order_id:9000000010+i,
-    type:['mediations','cancel_sale','product_not_received'][i%3],
-    status:['opened','in_mediation','waiting_seller'][i%3],
-    stage:['claim','dispute'][i%2],
-    buyer:'Cliente '+(i+10),
-    date: new Date(Date.now()-Math.random()*5*86400000).toISOString(),
-  }));
 }
 
 async function startApp(silent=false){
@@ -617,14 +466,21 @@ async function startApp(silent=false){
     document.getElementById('auth-screen').style.display='none';
     document.getElementById('loading-screen').style.display='flex';
   }
-  const step=(t)=>{
-    const el=document.getElementById('loading-step');
-    if(el) el.textContent=t;
-    if(silent) console.log('[auto-sync]',t);
-  };
+  const step=(t)=>{ const el=document.getElementById('loading-step'); if(el) el.textContent=t; if(silent) console.log('[auto-sync]',t); };
 
-  // Contador de tempo decorrido + aviso de não recarregar (só na primeira carga)
-  let elapsedInterval=null, beforeUnloadHandler=null;
+  let elapsedInterval=null, beforeUnloadHandler=null, bailoutTimer=null, globalTimeoutTimer=null;
+  let bailedOut=false;
+  function doBailOut(forced){
+    if(bailedOut) return;
+    bailedOut=true;
+    cleanup();
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    if(forced) showToast('Carregamento parcial — alguns dados podem estar incompletos','err');
+    renderAll();
+  }
+  window.bailOutOfLoading = ()=>doBailOut(false);
+
   if(!silent){
     const loadStart = Date.now();
     elapsedInterval = setInterval(()=>{
@@ -634,36 +490,38 @@ async function startApp(silent=false){
     }, 1000);
     beforeUnloadHandler = (e)=>{ e.preventDefault(); e.returnValue=''; return ''; };
     window.addEventListener('beforeunload', beforeUnloadHandler);
+    bailoutTimer = setTimeout(()=>{ const btn = document.getElementById('loading-bailout-btn'); if(btn) btn.style.display='inline-block'; }, 20000);
+    globalTimeoutTimer = setTimeout(()=>doBailOut(true), 90000);
   }
   const cleanup = ()=>{
     if(elapsedInterval) clearInterval(elapsedInterval);
     if(beforeUnloadHandler) window.removeEventListener('beforeunload', beforeUnloadHandler);
+    if(bailoutTimer) clearTimeout(bailoutTimer);
+    if(globalTimeoutTimer) clearTimeout(globalTimeoutTimer);
+    const btn = document.getElementById('loading-bailout-btn'); if(btn) btn.style.display='none';
   };
 
   step('Conectando à API...');
   if(!silent) await new Promise(r=>setTimeout(r,400));
+  if(bailedOut) return;
 
   if(!state.isDemo && state.tokenExpiresAt && Date.now()>state.tokenExpiresAt && state.refreshToken){
     step('Renovando token...');
     const ok=await doRefreshToken();
     if(!ok){ cleanup(); if(!silent) logout(); return; }
   }
+  if(bailedOut) return;
 
   if(state.isDemo){
     const all = demoOrders();
-    state.orders = all; // acumulado em aberto (demo já simula isso)
-    state.ordersToday = all.filter(o=>{
-      const d=new Date(o.date_created); const today=new Date();
-      return d.toDateString()===today.toDateString();
-    });
-    if(state.ordersToday.length<5){
-      // garante pelo menos alguns pedidos "hoje" pro demo ficar realista
-      state.ordersToday = all.slice(0,12).map(o=>({...o, date_created:new Date().toISOString()}));
-    }
+    state.orders = all;
+    state.ordersToday = all.filter(o=>{ const d=new Date(o.date_created); const today=new Date(); return d.toDateString()===today.toDateString(); });
+    if(state.ordersToday.length<5){ state.ordersToday = all.slice(0,12).map(o=>({...o, date_created:new Date().toISOString()})); }
     document.getElementById('seller-name').textContent='LOJA DEMO · Seller 123456789';
   } else {
     step('Verificando conta...');
     const user=await mlGet(`/users/${state.sellerId}`);
+    if(bailedOut) return;
     if(!user){
       cleanup();
       if(!silent){
@@ -681,7 +539,6 @@ async function startApp(silent=false){
     const dFrom=todayStart.toISOString().slice(0,19)+'.000-03:00';
     const dTo=todayEnd.toISOString().slice(0,19)+'.999-03:00';
 
-    // ── Função: busca pedidos de HOJE (alimenta Faturamento/Pedidos do Dia) ──
     async function fetchTodayOrders(){
       let todayOrders=[];
       const firstPage=await mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=0`);
@@ -691,6 +548,7 @@ async function startApp(silent=false){
         const todayOffsets=[];
         for(let off=50; off<rawTotalToday; off+=50) todayOffsets.push(off);
         for(let i=0;i<todayOffsets.length;i+=3){
+          if(bailedOut) return todayOrders;
           const batch=todayOffsets.slice(i,i+3);
           const results=await Promise.all(batch.map(off=>
             mlGet(`/orders/search?seller=${state.sellerId}&order.date_created.from=${encodeURIComponent(dFrom)}&order.date_created.to=${encodeURIComponent(dTo)}&limit=50&offset=${off}`)
@@ -700,143 +558,77 @@ async function startApp(silent=false){
         }
       }
       const seenTodayIds=new Set();
-      todayOrders = todayOrders.filter(o=>{
-        if(seenTodayIds.has(o.id)) return false;
-        seenTodayIds.add(o.id); return true;
-      });
-
-      // Garante order_items completos (necessário para produtos vendidos)
+      todayOrders = todayOrders.filter(o=>{ if(seenTodayIds.has(o.id)) return false; seenTodayIds.add(o.id); return true; });
       if(todayOrders.length){
         const needsDetail = todayOrders.filter(o=>!o.order_items || !o.order_items.length);
         const detailFetches = needsDetail.slice(0,80).map(o=>mlGet(`/orders/${o.id}`));
         for(let i=0;i<detailFetches.length;i+=8){
+          if(bailedOut) return todayOrders;
           const group = await Promise.all(detailFetches.slice(i,i+8));
           group.forEach((full,idx)=>{
-            if(full){
-              const orig = needsDetail[i+idx];
-              const target = todayOrders.find(o=>o.id===orig.id);
-              if(target) target.order_items = full.order_items || [];
-            }
+            if(full){ const orig = needsDetail[i+idx]; const target = todayOrders.find(o=>o.id===orig.id); if(target) target.order_items = full.order_items || []; }
           });
         }
       }
       return todayOrders;
     }
 
-    // ── Função: busca pedidos ABERTOS últimos 30 dias (alimenta Status/Atrasadas/Formas de Entrega) ──
     async function fetchOpenOrders(){
-      // DESCOBERTA IMPORTANTE: /orders/search NUNCA retorna shipping.status/substatus —
-      // só o shipping.id (confirmado na documentação oficial do ML). Para saber se um pedido
-      // está em handling, ready_to_ship, atrasado etc., é OBRIGATÓRIO consultar /shipments/{id}.
-      //
-      // Estratégia: este painel é para OPERAÇÃO DO DIA — etiquetas, atrasos, despachos.
-      // Pedidos de mais de 7 dias sem entrega já são caso grave/excepcional, não rotina diária.
-      // Reduzir a janela de 30→7 dias corta o volume drasticamente (de milhares para dezenas),
-      // tornando a consulta individual a /shipments/{id} rápida o suficiente para ser "quase tempo real".
       const openFrom = new Date(Date.now()-7*864e5).toISOString().slice(0,19)+'.000-03:00';
       const openTo = todayEnd.toISOString().slice(0,19)+'.999-03:00';
       const PAGE_LIMIT = 50;
-
       let allOpenOrders=[];
       const firstOpenPage = await mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&tags=not_delivered&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=0`);
-
-      window.__debugFirstOpenPage = firstOpenPage;
-      console.log('[DEBUG] firstOpenPage (tags=not_delivered, 7 dias):', JSON.stringify(firstOpenPage)?.slice(0,500));
-
       if(firstOpenPage){
         allOpenOrders=[...(firstOpenPage.results||[])];
         const rawTotal = firstOpenPage.paging?.total;
-        console.log('[DEBUG] rawTotal not_delivered (7 dias):', rawTotal);
-
-        const SAFETY_CAP = 500; // janela de 7 dias já é pequena por natureza
+        const SAFETY_CAP = 500;
         const total = Math.min(rawTotal||allOpenOrders.length, SAFETY_CAP);
         const offsets = [];
         for(let off=PAGE_LIMIT; off<total; off+=PAGE_LIMIT) offsets.push(off);
-
         const BATCH_SIZE = 5;
         for(let i=0; i<offsets.length; i+=BATCH_SIZE){
+          if(bailedOut) break;
           const batchOffsets = offsets.slice(i, i+BATCH_SIZE);
           step(`Buscando pedidos não entregues (7 dias)... ${allOpenOrders.length} já carregados de ~${total}`);
-
           const results = await Promise.all(batchOffsets.map(off=>
             mlGet(`/orders/search?seller=${state.sellerId}&order.status=paid&tags=not_delivered&order.date_created.from=${encodeURIComponent(openFrom)}&order.date_created.to=${encodeURIComponent(openTo)}&limit=${PAGE_LIMIT}&offset=${off}`)
           ));
-
           let gotEmpty=false;
-          results.forEach(page=>{
-            if(page && page.results){
-              allOpenOrders.push(...page.results);
-              if(page.results.length===0 || page.results.length<PAGE_LIMIT) gotEmpty=true;
-            }
-          });
-
+          results.forEach(page=>{ if(page && page.results){ allOpenOrders.push(...page.results); if(page.results.length===0 || page.results.length<PAGE_LIMIT) gotEmpty=true; } });
           if(gotEmpty) break;
-          await new Promise(r=>setTimeout(r,1050));
+          await new Promise(r=>setTimeout(r,300));
         }
       }
-
       const seenIds=new Set();
-      const openOrders = allOpenOrders.filter(o=>{
-        if(seenIds.has(o.id)) return false;
-        seenIds.add(o.id);
-        return o.status!=='cancelled';
-      });
-
-      // ── Busca o status REAL de envio via /shipments/{id} — só para os não entregues ──
-      // Com a janela de 7 dias, o volume já costuma ser pequeno (dezenas), então consultamos
-      // todos sem necessidade de cortar em 500 como antes — fica rápido por natureza do filtro.
-      const toCheck = [...openOrders]
-        .sort((a,b)=>new Date(b.date_created)-new Date(a.date_created))
-        .filter(o=>o.shipping?.id);
-
+      const openOrders = allOpenOrders.filter(o=>{ if(seenIds.has(o.id)) return false; seenIds.add(o.id); return o.status!=='cancelled'; });
+      const toCheck = [...openOrders].sort((a,b)=>new Date(b.date_created)-new Date(a.date_created)).filter(o=>o.shipping?.id);
       step(`Consultando status de envio de ${toCheck.length} pedidos...`);
-      for(let i=0;i<toCheck.length;i+=5){
-        const batch = toCheck.slice(i,i+5);
+      for(let i=0;i<toCheck.length;i+=8){
+        if(bailedOut) break;
+        const batch = toCheck.slice(i,i+8);
         step(`Status de envio... ${i+batch.length}/${toCheck.length}`);
-        const group = await Promise.all(batch.map(o=>
-          mlGet(`/shipments/${o.shipping.id}`).then(sh=>({orderId:o.id, shipment:sh}))
-        ));
-        group.forEach(({orderId, shipment})=>{
-          const target = openOrders.find(o=>o.id===orderId);
-          if(target && shipment){
-            target.shipping = { ...target.shipping, status: shipment.status, substatus: shipment.substatus, logistic_type: shipment.logistic_type };
-          }
-        });
-        await new Promise(r=>setTimeout(r,1050)); // respeita rate limit de 5 req/s
+        const group = await Promise.all(batch.map(o=> mlGet(`/shipments/${o.shipping.id}`).then(sh=>({orderId:o.id, shipment:sh})) ));
+        group.forEach(({orderId, shipment})=>{ const target = openOrders.find(o=>o.id===orderId); if(target && shipment){ target.shipping = { ...target.shipping, status: shipment.status, substatus: shipment.substatus, logistic_type: shipment.logistic_type }; } });
+        await new Promise(r=>setTimeout(r,250));
       }
-
       const statusCounts={};
       openOrders.forEach(o=>{ const s=o.shipping?.status||'sem_status'; statusCounts[s]=(statusCounts[s]||0)+1; });
-
       state.debugInfo = {
-        firstOpenPageOk: !!firstOpenPage,
-        rawTotal: firstOpenPage?.paging?.total,
-        rawResultsLen: firstOpenPage?.results?.length,
-        allOpenBeforeDedup: allOpenOrders.length,
-        openAfterDedup: openOrders.length,
-        statusChecked: toCheck.length,
-        statusCounts,
+        firstOpenPageOk: !!firstOpenPage, rawTotal: firstOpenPage?.paging?.total, rawResultsLen: firstOpenPage?.results?.length,
+        allOpenBeforeDedup: allOpenOrders.length, openAfterDedup: openOrders.length, statusChecked: toCheck.length, statusCounts,
         sampleOrder: openOrders[0] ? { id: openOrders[0].id, status: openOrders[0].status, shipping: openOrders[0].shipping } : null,
       };
-
       return openOrders;
     }
 
-    // ── Dispara as duas buscas em PARALELO de verdade — não espera uma terminar para começar a outra ──
     step('Buscando pedidos de hoje e pedidos abertos em paralelo...');
-    const [todayOrders, openOrders] = await Promise.all([
-      fetchTodayOrders(),
-      fetchOpenOrders(),
-    ]);
+    const [todayOrders, openOrders] = await Promise.all([ fetchTodayOrders(), fetchOpenOrders() ]);
+    if(bailedOut) return;
 
     state.ordersToday = todayOrders;
     state.openOrders = openOrders;
 
-    // ── Estima atraso por HEURÍSTICA DE DATA, sem chamada à API por pedido ──
-    // A verificação real via /shipments/{id}/delays é precisa mas exige 1 chamada por pedido,
-    // o que é o trecho mais lento do carregamento com alto volume. Na prática, um pedido em
-    // handling há mais de 2 dias, ou ready_to_ship há mais de 4 dias sem despachar, já é
-    // atraso real na maioria dos casos — e isso calcula instantaneamente, sem requisições extra.
     step('Calculando atrasos por data...');
     const now = Date.now();
     state.openOrders.forEach(o=>{
@@ -848,14 +640,12 @@ async function startApp(silent=false){
       else o.delayed=false;
     });
 
-    // state.orders agora representa o acumulado em aberto (usado nos status cards)
     state.orders = state.openOrders;
-    // Reclamações/Devoluções removidas do painel — endpoint instável (CORS) e não essencial
-    // para a operação logística do dia a dia. Reduz chamadas e acelera o carregamento.
     state.claims = [];
     state.returns = [];
   }
 
+  if(bailedOut) return;
   cleanup();
 
   if(!silent){
@@ -863,9 +653,8 @@ async function startApp(silent=false){
     document.getElementById('app').style.display='block';
     if(!state.isDemo) scheduleAutoRefresh();
     setInterval(updateClock,1000); updateClock();
-    startAutoSync(); // inicia o ciclo de atualização automática de dados
+    startAutoSync();
   }
-
   renderAll();
   state.lastSyncAt = Date.now();
   updateLastSyncLabel();
@@ -873,66 +662,30 @@ async function startApp(silent=false){
 
 function updateClock(){ document.getElementById('live-clock').textContent=new Date().toLocaleTimeString('pt-BR'); }
 
-// ── AUTO-SYNC: re-busca os dados da API periodicamente, sem precisar de F5 ──
 let autoSyncInterval=null;
-const AUTO_SYNC_MS = 90*1000; // 1.5 minutos — viável agora que a janela de busca é só 7 dias
-
+const AUTO_SYNC_MS = 90*1000;
 function startAutoSync(){
   if(autoSyncInterval) clearInterval(autoSyncInterval);
-  if(state.isDemo) return; // demo não precisa re-sincronizar
-  autoSyncInterval = setInterval(async ()=>{
-    console.log('[auto-sync] Atualizando dados automaticamente...');
-    showSyncIndicator(true);
-    await startApp(true); // modo silencioso — sem tela de loading
-    showSyncIndicator(false);
-  }, AUTO_SYNC_MS);
+  if(state.isDemo) return;
+  autoSyncInterval = setInterval(async ()=>{ showSyncIndicator(true); await startApp(true); showSyncIndicator(false); }, AUTO_SYNC_MS);
 }
+function showSyncIndicator(active){ const pill = document.querySelector('.live-pill'); if(!pill) return; pill.style.opacity = active ? '0.6' : '1'; }
+function updateLastSyncLabel(){ const el = document.getElementById('last-sync-label'); if(!el || !state.lastSyncAt) return; el.textContent = 'sync: '+new Date(state.lastSyncAt).toLocaleTimeString('pt-BR'); }
+function refreshAll(){ startApp(true).then(()=>{ const b=document.querySelector('.btn-refresh'); if(b){ b.textContent='Atualizado'; setTimeout(()=>b.textContent='Atualizar',2000); } }); }
 
-function showSyncIndicator(active){
-  const pill = document.querySelector('.live-pill');
-  if(!pill) return;
-  pill.style.opacity = active ? '0.6' : '1';
-  pill.title = active ? 'Sincronizando...' : 'Dados em tempo real';
-}
-
-function updateLastSyncLabel(){
-  const el = document.getElementById('last-sync-label');
-  if(!el || !state.lastSyncAt) return;
-  el.textContent = 'sync: '+new Date(state.lastSyncAt).toLocaleTimeString('pt-BR');
-}
-
-function refreshAll(){
-  // Botão manual "Atualizar" — força uma nova busca completa imediatamente
-  startApp(true).then(()=>{
-    const b=document.querySelector('.btn-refresh');
-    if(b){ b.textContent='✓ Atualizado'; setTimeout(()=>b.textContent='↻ Atualizar',2000); }
-  });
-}
-
-function renderAll(){
-  renderHero();
-  renderStatusGrid();
-  renderShippingMethods();
-  renderOrdersTable();
-  renderDaySummary();
-  renderProductsToday();
-  renderHourChart();
-  renderDebugPanel();
-}
+function renderAll(){ renderHero(); renderStatusGrid(); renderShippingMethods(); renderOrdersTable(); renderDaySummary(); renderProductsToday(); renderHourChart(); renderDebugPanel(); }
 
 function renderDebugPanel(){
-  const el=document.getElementById('debug-panel');
-  if(!el) return;
+  const el=document.getElementById('debug-panel'); if(!el) return;
   if(state.isDemo){ el.textContent='Modo demo — sem chamadas reais à API.'; return; }
   const d=state.debugInfo;
   if(!d){ el.textContent='Sem dados de diagnóstico ainda.'; return; }
-  el.innerHTML = `
-firstOpenPage recebido: <span style="color:${d.firstOpenPageOk?'var(--green)':'var(--red)'}">${d.firstOpenPageOk}</span>
-paging.total (not_delivered): <span style="color:var(--yellow)">${d.rawTotal}</span>
-results na 1ª página:   ${d.rawResultsLen}
-total antes dedupe:     ${d.allOpenBeforeDedup}
-total DEPOIS dedupe:    <span style="color:var(--accent)">${d.openAfterDedup}</span>
-status de envio verificados: <span style="color:var(--green)">${d.statusChecked}</span>
+  el.innerHTML = `firstOpenPage recebido: ${d.firstOpenPageOk}
+paging.total (not_delivered): ${d.rawTotal}
+results na 1a pagina: ${d.rawResultsLen}
+total antes dedupe: ${d.allOpenBeforeDedup}
+total DEPOIS dedupe: ${d.openAfterDedup}
+status de envio verificados: ${d.statusChecked}
 
 Contagem por shipping.status:
 ${Object.entries(d.statusCounts||{}).map(([k,v])=>`  ${k}: ${v}`).join('\n')||'  (vazio)'}
@@ -950,26 +703,23 @@ function getLogisticGroup(o){
 }
 
 function renderShippingMethods(){
-  const orders=state.ordersToday||[]; // pedidos de hoje
+  const orders=state.ordersToday||[];
   const flex=orders.filter(o=>getLogisticGroup(o)==='flex');
   const agency=orders.filter(o=>getLogisticGroup(o)==='agency');
   const full=orders.filter(o=>getLogisticGroup(o)==='full');
-
   document.getElementById('shipping-total-badge').textContent=`${orders.length} pedidos hoje`;
   document.getElementById('ship-flex-count').textContent=flex.length;
   document.getElementById('ship-agency-count').textContent=agency.length;
   document.getElementById('ship-full-count').textContent=full.length;
-
   const revOf=(arr)=>arr.reduce((s,o)=>s+(o.total_amount||0),0);
-  document.getElementById('ship-flex-detail').innerHTML = flex.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(flex))} faturado hoje</span>` : 'sem pedidos hoje';
-  document.getElementById('ship-agency-detail').innerHTML = agency.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(agency))} faturado hoje</span>` : 'sem pedidos hoje';
-  document.getElementById('ship-full-detail').innerHTML = full.length ? `<span style="color:var(--text2)">R$${fmtMoney(revOf(full))} faturado hoje</span>` : 'sem pedidos hoje';
+  document.getElementById('ship-flex-detail').innerHTML = flex.length ? `R$${fmtMoney(revOf(flex))} faturado hoje` : 'sem pedidos hoje';
+  document.getElementById('ship-agency-detail').innerHTML = agency.length ? `R$${fmtMoney(revOf(agency))} faturado hoje` : 'sem pedidos hoje';
+  document.getElementById('ship-full-detail').innerHTML = full.length ? `R$${fmtMoney(revOf(full))} faturado hoje` : 'sem pedidos hoje';
 }
 
 function renderProductsToday(){
   const orders=state.ordersToday||[];
   const productMap={};
-
   orders.forEach(o=>{
     if(o.status==='cancelled') return;
     if(o.order_items && o.order_items.length){
@@ -981,51 +731,28 @@ function renderProductsToday(){
         productMap[title].orders++;
       });
     } else if(o.product_title){
-      // fallback demo
       const title=o.product_title;
       if(!productMap[title]) productMap[title]={qty:0,revenue:0,orders:0};
-      productMap[title].qty+=1;
-      productMap[title].revenue+=o.total_amount||0;
-      productMap[title].orders++;
+      productMap[title].qty+=1; productMap[title].revenue+=o.total_amount||0; productMap[title].orders++;
     }
   });
-
   const sorted=Object.entries(productMap).sort((a,b)=>b[1].revenue-a[1].revenue);
   document.getElementById('products-today-badge').textContent=`${sorted.length} itens`;
-
   document.getElementById('products-today-tbody').innerHTML = sorted.length
-    ? sorted.map(([title,d])=>`
-        <tr>
-          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</td>
-          <td class="mono" style="color:var(--green);font-weight:600">${d.qty}</td>
-          <td class="mono">R$${fmtMoney(d.revenue)}</td>
-          <td class="mono" style="color:var(--text2)">${d.orders}</td>
-        </tr>`).join('')
+    ? sorted.map(([title,d])=>`<tr><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</td><td class="mono" style="color:var(--green);font-weight:600">${d.qty}</td><td class="mono">R$${fmtMoney(d.revenue)}</td><td class="mono" style="color:var(--text2)">${d.orders}</td></tr>`).join('')
     : '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--muted)">Nenhuma venda registrada hoje ainda</td></tr>';
-
   const top5=sorted.slice(0,5);
   const maxQty=top5[0]?.[1].qty||1;
   const colors=['#00e5a0','#3483fa','#ff9f1c','#b18aff','#ff3b5c'];
   document.getElementById('top-products-bars').innerHTML = top5.length
-    ? top5.map(([title,d],i)=>`
-        <div style="margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-            <span style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</span>
-            <span class="mono" style="color:${colors[i]}">${d.qty} un</span>
-          </div>
-          <div style="height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:${d.qty/maxQty*100}%;background:${colors[i]};border-radius:3px"></div>
-          </div>
-        </div>`).join('')
+    ? top5.map(([title,d],i)=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</span><span class="mono" style="color:${colors[i]}">${d.qty} un</span></div><div style="height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden"><div style="height:100%;width:${d.qty/maxQty*100}%;background:${colors[i]};border-radius:3px"></div></div></div>`).join('')
     : '<div style="color:var(--muted);font-size:13px">Sem vendas hoje ainda</div>';
 }
 
 function fmtMoney(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 function classifyOrder(o){
-  const sh = o.shipping||{};
-  const status = sh.status;
-  const substatus = sh.substatus;
+  const sh = o.shipping||{}; const status = sh.status; const substatus = sh.substatus;
   if(o.status==='cancelled') return 'cancelled';
   if(status==='ready_to_ship' && (substatus==='printed'||substatus==='ready_to_print')) return 'labels';
   if(status==='handling' && o.delayed) return 'delayed';
@@ -1038,29 +765,25 @@ function renderHero(){
   const paid = ordersToday.filter(o=>o.status==='paid');
   const revenue = paid.reduce((s,o)=>s+(o.total_amount||0),0);
   const avgTicket = paid.length ? revenue/paid.length : 0;
-
   document.getElementById('hero-revenue').textContent='R$ '+fmtMoney(revenue);
   document.getElementById('hero-avg-ticket').textContent='R$ '+fmtMoney(avgTicket);
   document.getElementById('hero-paid-count').textContent=paid.length;
   document.getElementById('hero-orders-today').textContent=ordersToday.length;
-
   const cancelledCount = ordersToday.filter(o=>o.status==='cancelled').length;
-  document.getElementById('hero-orders-delta').innerHTML = `<span style="color:var(--text2)">${paid.length} pagos · <span style="color:var(--red)">${cancelledCount} cancelados</span></span>`;
-  document.getElementById('hero-revenue-delta').innerHTML = `<span style="color:var(--green)">▲ ${paid.length} vendas confirmadas hoje</span>`;
+  document.getElementById('hero-orders-delta').innerHTML = `${paid.length} pagos · ${cancelledCount} cancelados`;
+  document.getElementById('hero-revenue-delta').innerHTML = `${paid.length} vendas confirmadas hoje`;
 }
 
 function renderStatusGrid(){
   const orders=state.orders||[];
   const buckets={labels:0,delayed:0,ready:0,cancelled:0};
   orders.forEach(o=>{ const c=classifyOrder(o); if(buckets[c]!==undefined) buckets[c]++; });
-
   document.getElementById('st-labels').textContent=buckets.labels;
   document.getElementById('st-delayed').textContent=buckets.delayed;
   document.getElementById('st-ready').textContent=buckets.ready;
   document.getElementById('st-cancelled').textContent=buckets.cancelled;
-
   document.getElementById('st-labels-flag').textContent = buckets.labels>0?`${buckets.labels} aguardando impressão`:'tudo impresso';
-  document.getElementById('st-delayed-flag').textContent = buckets.delayed>0?'🚨 ação urgente':'sem atrasos';
+  document.getElementById('st-delayed-flag').textContent = buckets.delayed>0?'ação urgente':'sem atrasos';
   document.getElementById('st-delayed-flag').className = buckets.delayed>0?'status-flag b-red':'status-flag b-green';
   document.getElementById('st-ready-flag').textContent = buckets.ready>0?'pronto p/ despachar':'nenhuma pronta';
   document.getElementById('st-cancelled-flag').textContent = buckets.cancelled+' hoje';
@@ -1069,23 +792,14 @@ function renderStatusGrid(){
 function renderOrdersTable(){
   const orders=[...(state.orders||[])].sort((a,b)=>new Date(b.date_created)-new Date(a.date_created));
   document.getElementById('detail-count-badge').textContent=`${orders.length} pedidos`;
-
   const statusLabel={handling:'Em preparação',ready_to_ship:'Pronto p/ enviar',shipped:'Enviado',delivered:'Entregue',cancelled:'Cancelado'};
   const statusBadge={handling:'b-orange',ready_to_ship:'b-green',shipped:'b-blue',delivered:'b-green',cancelled:'b-gray'};
-
   document.getElementById('orders-tbody').innerHTML = orders.length ? orders.slice(0,60).map(o=>{
     const sh=o.shipping||{};
     const cls=classifyOrder(o);
     const priorityColor = cls==='delayed'?'#ff3b5c':cls==='labels'?'#3483fa':cls==='ready'?'#00e5a0':'#8b9bb0';
-    const priorityLabel = cls==='delayed'?'Urgente':cls==='labels'?'Imprimir':cls==='ready'?'OK':cls==='cancelled'?'—':'—';
-    return `<tr>
-      <td class="mono">#${String(o.id).slice(-8)}</td>
-      <td>${o.buyer?.nickname||'—'}</td>
-      <td class="mono" style="color:var(--green)">R$${fmtMoney(o.total_amount)}</td>
-      <td><span class="badge ${statusBadge[sh.status]||'b-gray'}">${statusLabel[sh.status]||o.status}</span></td>
-      <td style="font-size:11px;color:var(--text2)">${sh.substatus||'—'}</td>
-      <td><span class="priority-ring" style="background:${priorityColor}"></span>${priorityLabel}</td>
-    </tr>`;
+    const priorityLabel = cls==='delayed'?'Urgente':cls==='labels'?'Imprimir':cls==='ready'?'OK':'—';
+    return `<tr><td class="mono">#${String(o.id).slice(-8)}</td><td>${o.buyer?.nickname||'—'}</td><td class="mono" style="color:var(--green)">R$${fmtMoney(o.total_amount)}</td><td><span class="badge ${statusBadge[sh.status]||'b-gray'}">${statusLabel[sh.status]||o.status}</span></td><td style="font-size:11px;color:var(--text2)">${sh.substatus||'—'}</td><td><span class="priority-ring" style="background:${priorityColor}"></span>${priorityLabel}</td></tr>`;
   }).join('') : '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted)">Nenhum pedido hoje ainda</td></tr>';
 }
 
@@ -1094,13 +808,7 @@ function renderDaySummary(){
   const byHour={};
   orders.forEach(o=>{ const h=new Date(o.date_created).getHours(); byHour[h]=(byHour[h]||0)+1; });
   const peakHour=Object.entries(byHour).sort((a,b)=>b[1]-a[1])[0];
-
-  document.getElementById('day-summary').innerHTML=`
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Total de pedidos</span><span class="mono" style="font-weight:600">${orders.length}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Horário de pico</span><span class="mono" style="font-weight:600">${peakHour?peakHour[0]+'h':'—'}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Taxa de cancelamento</span><span class="mono" style="font-weight:600;color:var(--red)">${orders.length?((orders.filter(o=>o.status==='cancelled').length/orders.length)*100).toFixed(1):0}%</span></div>
-    </div>`;
+  document.getElementById('day-summary').innerHTML=`<div style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Total de pedidos</span><span class="mono" style="font-weight:600">${orders.length}</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Horário de pico</span><span class="mono" style="font-weight:600">${peakHour?peakHour[0]+'h':'—'}</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">Taxa de cancelamento</span><span class="mono" style="font-weight:600;color:var(--red)">${orders.length?((orders.filter(o=>o.status==='cancelled').length/orders.length)*100).toFixed(1):0}%</span></div></div>`;
 }
 
 function renderHourChart(){
@@ -1108,9 +816,7 @@ function renderHourChart(){
   const byHour=new Array(24).fill(0);
   orders.forEach(o=>{ const h=new Date(o.date_created).getHours(); byHour[h]++; });
   const max=Math.max(...byHour,1);
-  document.getElementById('hour-chart').innerHTML = byHour.map((v,h)=>
-    `<div class="hour-bar" style="height:${Math.max(3,v/max*76)}px" data-val="${h}h: ${v}"></div>`
-  ).join('');
+  document.getElementById('hour-chart').innerHTML = byHour.map((v,h)=>`<div class="hour-bar" style="height:${Math.max(3,v/max*76)}px" data-val="${h}h: ${v}"></div>`).join('');
 }
 
 (function init(){
